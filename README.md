@@ -21,4 +21,4 @@
 
 ## Провенанс
 
-Материалы о BecqMoni построены по открытому коду проекта Am6er/BecqMoni (вершина d80c7ee, ветка roi-wizard-reworked); фактические утверждения прошли перекрёстный аудит с независимой сверкой адресов. Конспекты SpectraLine/NuclideMaster — сжатый пересказ документации; правообладатель документации — ООО «ЛСРМ» (lsrm.ru).
+Материалы о BecqMoni построены по открытому коду проекта Am6er/BecqMoni (вершина d80c7ee, ветка roi-wizard-reworked); фактические утверждения прошли перекрёстный аудит с независимой сверкой адресов. Конспекты SpectraLine/NuclideMaster — сжатый пересказ пользовательской документации, которую правообладатель раздаёт открыто: [SpectraLine](https://lsrm.ru/help/dokumentacija/spectraline.php), [общие модули](https://lsrm.ru/help/dokumentacija/obshchie_moduli.php) (в т.ч. «Алгоритмические основы» и Efficiency), [Nuclide Master](https://lsrm.ru/help/dokumentacija/nuclidemaster.php). Правообладатель документации — ООО «ЛСРМ» (lsrm.ru); ссылки на страницы PDF в конспектах указывают на эти оригиналы.

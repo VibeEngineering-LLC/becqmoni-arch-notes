@@ -32,9 +32,13 @@ img { max-width: 100%; }
 </head>
 <body>
 <nav><a href="index.html">Главная</a><a href="best-solutions.html">Обзор функционала</a><a href="bm-arch-tz.html">ТЗ рефакторинга</a><a href="wave0.html">Волна 0: дефекты</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html">Карта связей BecqMoni</a><a href="menu-map.html">Меню BecqMoni</a><a href="spectraline.html" class="act">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a><a href="wizard/">Конструктор (веб)</a></nav>
-<p class="meta">Конспект — сжатый пересказ документации со ссылками на страницы PDF; правообладатель документации — ООО «ЛСРМ» (lsrm.ru).</p><p class="meta"><a href="spectraline.md" download>Скачать эту страницу в Markdown</a></p><h1>SpectraLineBG 1.7 — конспект-справочник по документации ЛСРМ</h1>
-<p>Составлен по PDF-документации из <code>C:\Lsrm\SpectraLineBG\Doc\Rus\</code> (редакции 2025 г.).
-Обозначения источников:</p>
+<p class="meta">Конспект — сжатый пересказ пользовательской документации, открыто раздаваемой правообладателем: <a href="https://lsrm.ru/help/dokumentacija/spectraline.php">SpectraLine</a>, <a href="https://lsrm.ru/help/dokumentacija/obshchie_moduli.php">общие модули</a>, <a href="https://lsrm.ru/help/dokumentacija/nuclidemaster.php">Nuclide Master</a>. Ссылки на страницы PDF указывают на эти оригиналы; правообладатель — ООО «ЛСРМ» (lsrm.ru).</p><p class="meta"><a href="spectraline.md" download>Скачать эту страницу в Markdown</a></p><h1>SpectraLineBG 1.7 — конспект-справочник по документации ЛСРМ</h1>
+<p>Составлен по пользовательской документации ЛСРМ (редакции 2025 г.), которую правообладатель раздаёт открыто:</p>
+<ul>
+<li>руководства семейства SpectraLine и «Основные функции» — https://lsrm.ru/help/dokumentacija/spectraline.php</li>
+<li>«Алгоритмические основы», Efficiency 1.7, GMaster, «Контейнер», XRayViewer, «Сравнение библиотек» — https://lsrm.ru/help/dokumentacija/obshchie_moduli.php</li>
+</ul>
+<p>Правообладатель документации — ООО «ЛСРМ» (lsrm.ru); конспект — сжатый пересказ со ссылками на страницы PDF, не замена оригинала. Обозначения источников:</p>
 <table>
 <thead>
 <tr>
@@ -570,7 +574,7 @@ executeforallspe; запуск с панели Сценарии, из редак
 </ol>
 <hr />
 <h2>11. Старшие редакции: GP и Ultimate (дельта)</h2>
-<p>Дополнение по документации из <code>C:\Lsrm\SpectraLineUltimate\Doc\Rus\</code> (редакции 2025 г.).
+<p>Дополнение по руководствам старших редакций (SpectraLineUltimate 1.7, NuclearMaterials 1.7, «Специализированные функции», «Контейнер» 1.5), редакции 2025 г.; все — на тех же публичных страницах ЛСРМ, что и основной комплект.
 Новые шифры источников (страницы — физические страницы PDF):</p>
 <table>
 <thead>
@@ -661,12 +665,12 @@ BSI, Canberra, MCA527, AtomTex, Ortec, Amplituda, ИФТП, Радэк), «Ре�
   SpectraLineNM (ЯМ стр. 4: «SpectraLineNM включает в себя возможности SpectraLineGP
   и опцию NuclearMaterials»), а её демо-конфигурация — <strong>HPGe(20%)</strong> для «типичного
   детектора из особо чистого германия» (УЛТ стр. 5, 10).</li>
-<li>Папка <code>C:\Lsrm\Work\GP\HPGe(20%)</code> на ноутбуке — это ровно та структура, которую
+<li>Папка <code>…\Lsrm\Work\GP\HPGe(20%)</code> в установленном продукте — это ровно та структура, которую
   создаёт установка SpectraLineUltimate: «в поддиректории Work директории LSRM …
   появятся: папка GP и вложенная в неё директория HPGe(20%) с демонстрационной
   конфигурацией для типичного детектора из особо чистого германия» (УЛТ стр. 10).
   То есть конфигурация принадлежит установленному SpectraLineUltimate (каталог
-  <code>C:\Lsrm\SpectraLineUltimate</code>), а «GP» здесь — имя подпапки редакции внутри Work.</li>
+  каталогу SpectraLineUltimate), а «GP» здесь — имя подпапки редакции внутри Work.</li>
 <li>Утверждение «GP = редакция специально для ППД» в доках дословно не сформулировано —
   только связка GP ↔ демо-конфигурация HPGe (см. 11.8).</li>
 </ul>
@@ -782,7 +786,7 @@ BSI, Canberra, MCA527, AtomTex, Ortec, Amplituda, ИФТП, Радэк), «Ре�
 <h3>11.8 Не нашёл в доках (дельта)</h3>
 <ol>
 <li><strong>Расшифровка и точный состав редакции GP</strong>: отдельного руководства SpectraLineGP в
-   <code>C:\Lsrm\SpectraLineUltimate\Doc\Rus\</code> нет; «GP = для ППД/HPGe» — только косвенно
+   в прочитанном комплекте нет; «GP = для ППД/HPGe» — только косвенно
    (демо-конфигурация HPGe(20%) в папке GP, УЛТ стр. 5, 10; SpectraLineNM = GP + NM,
    ЯМ стр. 4). Чем GP отличается от BG по составу модулей — не сформулировано. ⚠️</li>
 <li><strong>Таблица сравнения редакций</strong> (BG/GP/Handy/Ultimate/ADA/бесплатная) — нигде нет;
