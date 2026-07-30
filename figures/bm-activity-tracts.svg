@@ -89,10 +89,10 @@
 
   <rect x="790" y="310" width="250" height="104" rx="8" class="box"/>
   <text x="804" y="332" class="title">Разрозненный вывод — сейчас</text>
-  <text x="804" y="352" class="line">оверлей на спектре: подписи</text>
-  <text x="804" y="370" class="line">пиков фита; таблица найденных</text>
-  <text x="804" y="388" class="line">пиков; значение на выделении</text>
-  <text x="804" y="406" class="line">(тракт Б)</text>
+  <text x="804" y="352" class="line">оверлей подписей пиков фита;</text>
+  <text x="804" y="370" class="line">таблица найденных пиков;</text>
+  <text x="804" y="388" class="line">панель «Выбранная область»: счёт,</text>
+  <text x="804" y="406" class="line">Lc/Ld/Lq; A — лишь при кривой ε</text>
 
   <rect x="790" y="450" width="250" height="120" rx="8" class="newbox"/>
   <text x="804" y="474" class="title">Окно активности (НОВОЕ)</text>
