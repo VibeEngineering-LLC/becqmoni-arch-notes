@@ -87,16 +87,19 @@
   <text x="804" y="244" class="line">таблица зон (счёт, A, МДА),</text>
   <text x="804" y="262" class="line">до 4 экземпляров</text>
 
-  <rect x="790" y="322" width="250" height="72" rx="8" class="box"/>
-  <text x="804" y="346" class="title">Окно спектра</text>
-  <text x="804" y="366" class="line">значение на выделении — как сейчас</text>
+  <rect x="790" y="310" width="250" height="104" rx="8" class="box"/>
+  <text x="804" y="332" class="title">Разрозненный вывод — сейчас</text>
+  <text x="804" y="352" class="line">оверлей на спектре: подписи</text>
+  <text x="804" y="370" class="line">пиков фита; таблица найденных</text>
+  <text x="804" y="388" class="line">пиков; значение на выделении</text>
+  <text x="804" y="406" class="line">(тракт Б)</text>
 
   <rect x="790" y="450" width="250" height="120" rx="8" class="newbox"/>
   <text x="804" y="474" class="title">Окно активности (НОВОЕ)</text>
-  <text x="804" y="494" class="line">по нуклидам: A ± σ, МДА,</text>
-  <text x="804" y="512" class="line">вклад линий — аналог окна</text>
-  <text x="804" y="530" class="line">«Активность радионуклидов» SL;</text>
-  <text x="804" y="548" class="line">смена набора → живой пересчёт</text>
+  <text x="804" y="494" class="line">консолидирует спектрометрический</text>
+  <text x="804" y="512" class="line">вывод: по нуклидам A ± σ, МДА,</text>
+  <text x="804" y="530" class="line">вклад линий — как «Активность</text>
+  <text x="804" y="548" class="line">радионуклидов» SL; живой пересчёт</text>
 
   <path d="M 730 227 L 790 227" class="arrow"/>
   <path d="M 730 358 L 790 358" class="arrow"/>
