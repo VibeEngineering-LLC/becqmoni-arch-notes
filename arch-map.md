@@ -44,7 +44,7 @@
   - `ROIDefinitions` — список областей (`ROIDefinitionData`).
   - `ROIEfficiency` — список точек кривой эффективности (`ROIEfficiencyData`: Energy,
     Efficiency, ErrorPercent — `ROIEfficiencyData.cs:7-24`).
-  - `HasEfficiency` — вычисляемое: `roiEfficiency.Count > 1` (:130-136), т.е. **кривой
+  - `HasEfficiency` — вычисляемое: `roiEfficiency != null && Count > 1` (:130-136), т.е. **кривой
     считается набор минимум из двух точек**; одна точка молча означает «кривой нет».
 
 ### 1.3 ROIDefinitionData — одна область ROI
@@ -154,7 +154,12 @@
 
 ### 1.11 GlobalConfigInfo
 - `BecquerelMonitor/GlobalConfigInfo.cs:6` — окна, язык, `MeasurementConfig`
-  (DetectionLevel, ErrorLevel, ShowValuesForNDResult), `ChartViewConfig`, автосохранение.
+  (DetectionLevel, ErrorLevel, ShowValuesForNDResult), `ChartViewConfig`, автосохранение,
+  **`EasyControlConfig`** (`GlobalConfigInfo.cs:328`, создаётся :483).
+- **EasyControlConfig — третий держатель пары Guid-ссылок** (дополнение по аудиту
+  перекрёстного аудита 30.07): `EasyControlConfig.cs:27` `DeviceConfigReference`,
+  `:58` `ROIConfigReference`. Писатель — `GlobalConfigForm.cs:234, 239`; читатель —
+  `MainForm.cs:2668-2681`. См. строку 19 матрицы: единственный НЕтихий путь резолва.
 - Файл `%AppData%\BecqMoni\config\BecquerelMonitor.xml`
   (`GlobalConfigManager.cs:42-47, 76-81`, путь `Package.cs:84-94`).
 
@@ -166,7 +171,7 @@
 |---|---|---|---|---|
 | 1 | ResultData.DeviceConfigReference → DeviceConfigInfo | **Guid-строка** | `DCControlPanel.cs:452` (выбор в панели), `DocEnergySpectrum.cs:414` (новый документ) | `DocumentManager.PrepareDeviceConfig` :1355-1372 — линейный перебор `DeviceConfigList`, совпадение по `Guid`; не найдено → **молча** остаётся дефолтный конфиг |
 | 2 | ResultData.ROIConfigReference → ROIConfigData | **Guid-строка** | `DCControlPanel.cs:483`, `DocEnergySpectrum.cs:459`, `DocumentManager.SplitDocEnergySpectrum` :1445 | `DocumentManager.PrepareROIConfig` :1375-1390 (то же: тихий не-матч). Поле `Name` ссылки **никем не читается** (grep по дереву пуст) — чисто информационное |
-| 3 | DeviceConfigInfo.EfficencyROIGuid → ROIConfigData | **Guid-строка** | `DeviceConfigForm.cs:1715` (сброс), :1724 (выбор через словарь index→guid `effROIdic` :620); `SelectROIDialog.cs:111` (галочка «привязать к прибору») | `DocEnergySpectrum.CreateResultData` :451-457 (кладёт кривую в `ResultData.ROIConfig` нового спектра), `DCPeakDetectionView.BoundEfficiencyConfig` :49-58 (в фиттер — только при `ROIConfig.Guid == EfficencyROIGuid`), `DeviceConfigForm.cs:610-612`, `SelectROIDialog.cs:50-53` |
+| 3 | DeviceConfigInfo.EfficencyROIGuid → ROIConfigData | **Guid-строка** | `DeviceConfigForm.cs:1715` (сброс), :1724 (выбор через словарь index→guid `effROIdic` :620); `SelectROIDialog.cs:111` (галочка «привязать к прибору») | `DocEnergySpectrum.CreateResultData` :451-457 (кладёт кривую в `ResultData.ROIConfig` нового спектра), `DCPeakDetectionView.BoundEfficiencyConfig` :49-58 (в фиттер — только при `ROIConfig.Guid == EfficencyROIGuid` **И `config.HasEfficiency`** :57, иначе null), `DeviceConfigForm.cs:610-612`, `SelectROIDialog.cs:50-53` |
 | 4 | ResultData → фоновый спектр | **путь к файлу**: сериализуется только имя (`BackgroundSpectrumFile`), полный путь живёт в `[XmlIgnore] BackgroundSpectrumPathname` и в `DeviceConfigInfo.BackgroundSpectrumPathname` (абсолютный) | `DCControlPanel.cs:509-510`, `DocumentManager.CreateDocument` :99-100 (путь берётся из конфига прибора) | `DocumentManager.LoadBackgroundSpectrum` :1393-1436 — читает файл как ResultDataFile и берёт `ResultDataList[0].EnergySpectrum` |
 | 5 | NuclideDefinition.Sets → NuclideSet.Id | **HashSet\<Guid\>** (настоящий Guid) | `NuclideSetForm.cs:200-204` (галочки членства), `RoiWizard/SetExporter.cs:213` (`definition.Sets.Add(set.Id)`), `SetExporter.MergeIntoLibrary` :246 | `PeakDetector.MatchNuclide` :365 (`Sets.Contains(nuclideSet.Id)`), `LibraryPeakFitter.Fit` :480 |
 | 6 | Линия → цепочка распада | **конвенция в строке Name**: текст в ПОСЛЕДНИХ скобках = имя корня («Bi-214 (Ra-226)» → «Ra-226»), без скобок — имя целиком | `NucBase/NucBase.cs:501-504` (импорт ряда: `name += " (корень)"`), `RoiWizard/SpectralLine.LibraryName` :69-105 (та же конвенция + спец-обработка слитых линий и суффиксов «X L») | `LibraryPeakFitter.ChainOf` :952-962 → группировка bound-групп :604; `RoiWizard/SetChecker.ChainOf` :279 |
@@ -182,11 +187,14 @@
 | 16 | RoiWizard → библиотека и ROI | объекты через менеджеры (файлы не пишет сам) | `RoiWizardForm.cs:1949-1973` (`CreateConfig`/`SaveConfig`), :2067-2074 (`MergeIntoLibrary` + `SaveDefinitionFile`) | далее штатные читатели менеджеров |
 | 17 | NucBase (nucdb.sqlite) → библиотека | чтение SQLite (read-only, `NucBase/DataBase.cs:18-19`) → `NuclideDefinition` | `NucBase.cs:438-527` (импорт с пересчётом интенсивности на распад корня :448-494) | далее как 1.5 |
 | 18 | LSRM-файл эффективности → ROI-конфиг | парсинг TSV → `ROIEfficiency` | `ROIConfigManager.ImportEffCalcMCtoROI` :290-350 (создаёт ROI-файл, состоящий из одной кривой; вызов `MainForm.cs:2545`), `DeviceConfigForm.buttonLoadEff_Click` :2436-2491 (для оценки дозовой калибровки) | читатели кривой (связи 10, 12, 13) |
+| 19 | EasyControlConfig → Device/ROI-конфиги | **Guid-строки** (`EasyControlConfig.cs:27, 58`) | `GlobalConfigForm.cs:234, 239` | `MainForm.cs:2670, 2680` — **индексатор словаря БЕЗ ContainsKey** (проверка только на null): удаление конфига, на который смотрит EasyControl, даёт `KeyNotFoundException` по событию DeviceConfigChanged/ROIConfigListChanged. Единственный путь резолва Guid, который не молчит, а падает; асимметрия — в том же методе :2689 ContainsKey есть |
 
 ---
 
 ## 3. Формы (WinForms) и их роли
 
+- **GlobalConfigForm** (`GlobalConfigForm.cs`) — глобальные настройки; пишет пару
+  Guid-ссылок EasyControl (:234, :239) — см. строку 19 матрицы.
 - **MainForm** (`MainForm.cs`) — хаб: таймер 100 мс; каждые ~500 мс
   `ShowMeasurementResult` :612-631 (пересчёт активностей активного документа →
   `ResultData.MeasurementResultCollection` :620 и раздача в DCResultView) и `ShowDoseRate`
@@ -272,7 +280,12 @@
    где ε — интерполяция `ROIAriphmetics.CalculateEfficiency` по `ROIEfficiency` конфига
    (`Utils/ROIAriphmetics.cs:26-42`), I — из библиотеки нуклидов. Либо вручную
    (`ROIConfigForm.cs:888`). **После записи K живёт своей жизнью** — смена кривой или
-   интенсивности в библиотеке на него не влияет.
+   интенсивности в библиотеке на него не влияет. Оговорка (аудит перекрёстного аудита 30.07):
+   перед записью два guard'а — `HasEfficiency && Intencity > 0` (:951) и
+   `effData != null && Efficiency > 0` (:955); при непрохождении K остаётся
+   дефолтным 0 (`ROIDefinitionData.cs:329` без инициализатора), и `Translate` :48
+   молча даёт `resultBq = cps·0 = 0` — тихий нуль активности. Кривая из одной точки
+   (см. §5.9) — ровно вход в этот путь.
 4. **A**: `Translate` :48 — `resultBq = (N/t) · K`; ошибка :52 (квадратура счётной и
    коэффициентной), MDA :55-56; Бк/кг и Бк/л — деление на `SampleInfo.Weight/Volume`
    :74-91. Поправка на распад — `Correct` :101-133 (нужны `SampleInfo.Time`, `EndTime`,
@@ -343,8 +356,12 @@
    `members.All(m => m.Intensity > 0.0)`) и не даёт активности по выделению
    (`EnergySpectrumView.cs:736`); конвенция задокументирована в
    `RoiWizard/SetExporter.cs:198-212`. (в) В `ROIDefinitionData` — копия для отрисовки
-   штрихов (`EnergySpectrumView.ShowROIReferencePeak` :2810-2833; условие :2812
-   `(Intencity < 100.0 || Intencity > 0.0)` — тавтология, истинно для любого числа).
+   штрихов (`EnergySpectrumView.ShowROIReferencePeak` :2810-2833; условие :2812 —
+   `Enabled && (Intencity < 100.0 || Intencity > 0.0)`: `Enabled` фильтрует,
+   тавтологична только скобка по Intencity — она истинна для любого числа,
+   вероятно задумывалось `&&`; поправка по аудиту перекрёстного аудита 30.07 —
+   ранняя редакция отсекала `Enabled` из цитаты и делала неверный вывод
+   «фильтр не фильтрует ничего»).
 3. **FormatVersion "120920"** — магическая строка-константа в трёх сущностях
    (`DeviceConfigInfo.cs:473`, `ROIConfigData.cs:226`, `ResultDataFile.cs:59`);
    несовпадение у device-конфига включает миграцию из формата 0.97b
@@ -361,7 +378,10 @@
 5. **Тихий не-матч Guid при открытии документа.** `PrepareDeviceConfig`/`PrepareROIConfig`
    (`DocumentManager.cs:1355-1390`) при отсутствии Guid в списках ничего не сообщают;
    спектр остаётся с дефолтными **непустыми** объектами (`ResultData.cs:422,426`) —
-   внешне это выглядит как «конфиг есть, но пустой».
+   внешне это выглядит как «конфиг есть, но пустой». **Правило «не-матч тихий» не
+   универсально**: путь EasyControl (`MainForm.cs:2670, 2680`, строка 19 матрицы)
+   разыменовывает словарь индексатором без ContainsKey и на удалённом конфиге
+   бросает `KeyNotFoundException`.
 6. **ROIReferenceData.Reference — ссылка по имени области** внутри того же конфига
    (`MeasurementResultManager.cs:374` `if (roidefinitionData.Name == roireferenceData.Reference)`).
    Переименование области или дубль имени рвёт/двоит ссылку без диагностики; ненайденная
@@ -397,7 +417,8 @@
 14. **Дублирование между ROI-файлами.** Каждый поставочный файл `config/ROI/*.xml` несёт
     собственные копии одних и тех же областей (Cs-137, Ra-226, K-40 в «Atom Nano 3»,
     «Atom Nano 8», «Atom Spectra 2»...); кривая эффективности — тоже per-файл
-    (`Obsidian Marinelli 0.5.xml` — 150 точек ROIEfficiencyData, большинство остальных — 0).
+    (по 150 точек ROIEfficiencyData в двух файлах: `Obsidian Marinelli 0.5.xml` и
+    `RadiaCode Marinelli 0.5.xml`; у остальных десяти — 0).
     Единственный общий справочник — `NuclideDefinition.xml`; ROI-файлы с ним не
     синхронизируются.
 15. **Абсолютный путь фона в конфиге прибора** (`DeviceConfigInfo.BackgroundSpectrumPathname`)
