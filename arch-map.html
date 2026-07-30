@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта связей BecqMoni — BecqMoni arch notes</title>
+<style>
+body { font-family: "Segoe UI", Calibri, sans-serif; font-size: 15px; line-height: 1.55; color: #222;
+       max-width: 1150px; margin: 0 auto; padding: 0 56px 40px; background: #fff; }
+nav { position: sticky; top: 0; background: #2f5b8f; margin: 0 -56px 28px; padding: 10px 56px; z-index: 5; }
+nav a { color: #dce8f5; text-decoration: none; margin-right: 22px; font-size: 14px; }
+nav a:hover { color: #fff; text-decoration: underline; }
+nav a.act { color: #fff; font-weight: 600; border-bottom: 2px solid #f0c34e; padding-bottom: 2px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 16px; }
+h2 { font-size: 20px; font-weight: 600; margin: 34px 0 12px; border-bottom: 2px solid #2f5b8f; padding-bottom: 4px; }
+h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; color: #2f5b8f; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; }
+th { background: #2f5b8f; color: #fff; text-align: left; padding: 7px 11px; font-weight: 600; font-size: 14px; }
+td { border: 1px solid #c9d4e0; padding: 7px 11px; vertical-align: top; font-size: 14px; }
+tr:nth-child(even) td { background: #f3f6fa; }
+code { font-family: Consolas, monospace; font-size: 13px; background: #f0f0ec; padding: 0 4px; border-radius: 3px; }
+pre { background: #f6f6f2; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #d9a62e; background: #fdf6e3; margin: 16px 0; padding: 8px 16px; }
+li { margin-bottom: 4px; }
+hr { border: none; border-top: 1px solid #ccc; margin: 28px 0; }
+img { max-width: 100%; }
+.meta { color: #666; font-size: 13px; margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">Обзор</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html" class="act">Карта связей BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a></nav>
+<p class="meta"><a href="arch-map.md" download>Скачать эту страницу в Markdown</a></p><h1>BecqMoni — карта связей модулей и данных</h1>
+<p>Дерево: <code>&lt;клон BecqMoni&gt;</code> (ветка fix/roi-wizard-defects), проект
+<code>BecquerelMonitor</code> (C#/WinForms). Все пути ниже — от корня дерева; строки — по состоянию
+рабочей копии на 30.07.2026. Режим обследования: read-only, только чтение кода.</p>
+<p>Примечание о формате документа спектра: в задании упоминалось расширение «.bmn» —
+в этом дереве его нет. Документ спектра сериализуется в <strong>.xml</strong>
+(<code>BecquerelMonitor/DocumentManager.cs:23-29</code> — <code>Extension =&gt; ".xml"</code>, фильтр диалогов
+<code>Properties/Resources.resx</code>: <code>Spectrum Files (*.xml)</code>).</p>
+<hr />
+<h2>1. Реестр сущностей данных</h2>
+<h3>1.1 DeviceConfigInfo — конфигурация прибора</h3>
+<ul>
+<li>Класс: <code>BecquerelMonitor/DeviceConfigInfo.cs:7</code>.</li>
+<li>Сериализация: XML-файл на конфиг в <code>%AppData%\BecqMoni\config\device\*.xml</code>
+  (пути — <code>BecquerelMonitor/Package.cs:60-82</code>; чтение — <code>DeviceConfigManager.cs:70-106</code>,
+  запись — <code>DeviceConfigManager.cs:229-241</code>, атомарно через <code>Utils.AtomicFileWriter</code>).</li>
+<li>Ключевые поля:</li>
+<li><code>FormatVersion</code> — строка <code>"120920"</code> (<code>DeviceConfigInfo.cs:473</code>, <code>InitFormatVersion</code> :361-364).
+    Иное значение = старый формат → повторная десериализация как <code>DeviceConfigInfo_097b</code>
+    и миграция (<code>DeviceConfigManager.cs:82-89</code>).</li>
+<li><code>Guid</code> — строковый GUID, первичный ключ конфига (ключ <code>DeviceConfigMap</code>).</li>
+<li><code>Name</code> — отображаемое имя (уходит в <code>DeviceConfigReference.Name</code>).</li>
+<li><code>DeviceType</code> — <strong>строковый идентификатор</strong> типа прибора: <code>"AudioInputDevice"</code>,
+    <code>"AtomSpectraVCP"</code>, <code>"RadiaCode"</code>, <code>"Obsidian"</code> (<code>DeviceConfigInfo.cs:506</code>), ключ в
+    <code>DeviceType.DeviceTypeMap</code> (<code>DeviceType.cs:31-70</code>).</li>
+<li><code>EnergyCalibration</code> (Polynomial/Nonlinear), <code>StabilizerConfig</code>, <code>PeakDetectionMethodConfig</code>
+    (FWHM + деконволюция), <code>InputDeviceConfig</code> (полиморфный по XmlElement-атрибутам :209-224).</li>
+<li><code>DoseRateConfig</code> → список <code>DoseRateCalibrationPoint</code> (см. 1.8).</li>
+<li><code>BackgroundSpectrumPathname</code> — <strong>абсолютный путь</strong> к файлу фонового спектра (:310-320).</li>
+<li><code>EfficencyROIGuid</code> (:322-332) — строковый GUID ROI-конфига, назначенного прибору как
+    кривая эффективности. Nullable; отсутствует в старых файлах.</li>
+</ul>
+<h3>1.2 ROIConfigData — конфигурация ROI (двойного назначения: области + кривая эффективности)</h3>
+<ul>
+<li>Класс: <code>BecquerelMonitor/ROIConfigData.cs:8</code>.</li>
+<li>Сериализация: XML-файл на конфиг в <code>%AppData%\BecqMoni\config\ROI\*.xml</code>
+  (<code>ROIConfigManager.cs:70-110</code> чтение, :247-260 запись).</li>
+<li>Ключевые поля:</li>
+<li><code>FormatVersion</code> <code>"120920"</code> (:226), <code>Guid</code> (ключ <code>ROIConfigMap</code>), <code>Name</code>, <code>LastUpdated</code>
+    (по нему сортировка списка, <code>IComparable</code> :213-217 — убывание даты).</li>
+<li><code>ROIDefinitions</code> — список областей (<code>ROIDefinitionData</code>).</li>
+<li><code>ROIEfficiency</code> — список точек кривой эффективности (<code>ROIEfficiencyData</code>: Energy,
+    Efficiency, ErrorPercent — <code>ROIEfficiencyData.cs:7-24</code>).</li>
+<li><code>HasEfficiency</code> — вычисляемое: <code>roiEfficiency.Count &gt; 1</code> (:130-136), т.е. <strong>кривой
+    считается набор минимум из двух точек</strong>; одна точка молча означает «кривой нет».</li>
+</ul>
+<h3>1.3 ROIDefinitionData — одна область ROI</h3>
+<ul>
+<li>Класс: <code>BecquerelMonitor/ROIDefinitionData.cs:7</code>.</li>
+<li>Сериализуется внутри ROIConfigData; runtime-поля результатов помечены <code>[XmlIgnore]</code>.</li>
+<li>Поля: <code>Name</code> (по нему же ссылаются ROIReferenceData — см. 2.7), <code>PeakEnergy</code>,
+  <code>LowerLimit</code>/<code>UpperLimit</code> (кэВ), <code>Color</code>, <code>HalfLife</code> (<strong>в годах</strong>; 0 = поправка на распад
+  не применяется), <code>Intencity</code> (%), <strong><code>BecquerelCoefficient</code> / <code>BecquerelCoefficientError</code></strong>
+  (:102-127) — «коэффициент активности» K: A[Бк] = (N/t)·K, <code>ROIPrimitives</code>
+  (полиморфный список: <code>ROISimpleDifferenceData</code>, <code>ROICovellMethodData</code>, <code>ROIReferenceData</code>
+  — XmlArrayItem :174-177). Runtime: <code>IsValidResult</code>, <code>ResultCount</code>, <code>ResultError</code>, <code>MDA</code>
+  (:208-267) — кэш последнего расчёта, живёт прямо в конфиге-объекте.</li>
+</ul>
+<h3>1.4 ROIPrimitiveData и наследники</h3>
+<ul>
+<li>База: <code>BecquerelMonitor/ROIPrimitiveData.cs:6</code>; в XML — <strong>строковые</strong> <code>PrimitiveType</code>
+  и <code>OperationType</code>; резолвятся при загрузке через словари
+  <code>ROIPrimitiveDefinition.DefinitionsMap</code> / <code>ROIPrimitiveOperation.OperationsMap</code>
+  (<code>ROIConfigManager.cs:90-91</code>). Имена-ключи: <code>"BG difference"</code>, <code>"Covell Method"</code>,
+  <code>"Reference"</code> (<code>ROIPrimitiveDefinition.cs:120-126</code>); операции <code>"Addition"</code>/<code>"Subtraction"</code>
+  (<code>MeasurementResultManager.cs:443-446</code>).</li>
+<li><code>ROIReferenceData.Reference</code> (<code>ROIReferenceData.cs:9-19</code>) — <strong>строковое имя</strong> другой
+  области того же ROI-конфига.</li>
+<li><code>Coefficient</code>/<code>CoefficientError</code> — множитель вклада примитива (по умолчанию 1.0,
+  <code>ROIPrimitiveData.cs:171</code>).</li>
+</ul>
+<h3>1.5 NuclideDefinition / NuclideDefinitionFile / NuclideSet — библиотека нуклидов</h3>
+<ul>
+<li>Классы: <code>BecquerelMonitor/NuclideDefinition.cs:9</code>, <code>NuclideDefinitionFile.cs:7</code>,
+  <code>NuclideSet.cs:5</code>.</li>
+<li>Сериализация: <strong>один файл</strong> <code>%AppData%\BecqMoni\config\NuclideDefinition.xml</code>
+  (<code>Package.cs:108-118</code>; менеджер <code>NuclideDefinitionManager.cs:82-127</code>, атомарная запись,
+  событие <code>NuclideDefinitionListChanged</code> после записи :58, :122-125).</li>
+<li><code>NuclideDefinition</code>: <code>Name</code> (несёт конвенцию цепочки в скобках — см. 5.1), <code>Energy</code> (кэВ),
+  <code>HalfLife</code> (годы; 0 у ХРИ/вторичных/долгоживущих), <code>Intencity</code> (% на распад корня цепочки
+  после пересчёта; 0 = маркер — см. 5.2), <code>Visible</code>, <code>NuclideColor</code>,
+  <strong><code>Sets</code> — <code>HashSet&lt;Guid&gt;</code></strong> (:136-146) — членство записи в наборах,
+  <strong><code>IsAnchor</code></strong> (:152-162) — якорная линия для библиотечного фита (в старых файлах
+  отсутствует → false).</li>
+<li><code>NuclideSet</code>: <code>Id</code> (<strong>Guid</strong>, а не строка), <code>Name</code>, <code>HideUnknownPeaks</code>.</li>
+<li><code>NuclideDefinitionFile</code>: два списка — <code>NuclideDefinitions</code> + <code>NuclideSets</code>.</li>
+</ul>
+<h3>1.6 Документ спектра: ResultDataFile / ResultData / EnergySpectrum</h3>
+<ul>
+<li><code>ResultDataFile</code> (<code>BecquerelMonitor/ResultDataFile.cs:6</code>): <code>FormatVersion "120920"</code> (:59) +
+  <code>List&lt;ResultData&gt;</code>. Сериализуется в пользовательский .xml целиком
+  (<code>DocumentManager.SaveDocument</code> :1283-1315, атомарно), читается
+  <code>DocumentManager.OpenDocument</code> :279-366.</li>
+<li><code>ResultData</code> (<code>BecquerelMonitor/ResultData.cs:8</code>) — один спектр в документе.
+  Сериализуемое: <code>SampleInfo</code>, <strong><code>DeviceConfigReference</code></strong> (:74-84),
+  <strong><code>ROIConfigReference</code></strong> (:99-109), <code>BackgroundSpectrumFile</code> (<strong>только имя файла</strong>,
+  инвалидные символы вычищаются :111-129), <code>StartTime</code>/<code>EndTime</code>, <code>PresetTime</code>,
+  <code>EnergySpectrum</code>, <code>BackgroundEnergySpectrum</code>, <code>PulseCollection</code>, <code>FwhmCalibration</code>
+  (:332-334).
+  <code>[XmlIgnore]</code> (живые связи, восстанавливаются при открытии): <strong><code>DeviceConfig</code></strong> (:61-72),
+  <strong><code>ROIConfig</code></strong> (:86-97), <code>BackgroundSpectrumPathname</code> (:131-142), <code>MeasurementController</code>,
+  <code>MeasurementResultCollection</code>, <code>DetectedPeaks</code>, <code>PeakDetectionMethodConfig</code>,
+  <code>ResultDataStatus</code>. Дефолты полей — <strong>непустые объекты</strong> (<code>deviceConfig = new
+  DeviceConfigInfo()</code> :422, <code>roiConfig = new ROIConfigData()</code> :426) — при не-найденном Guid
+  спектр молча живёт с пустым конфигом (см. 5.5).</li>
+<li><code>DeviceConfigReference</code> / <code>ROIConfigReference</code> (<code>DeviceConfigReference.cs:4</code>,
+  <code>ROIConfigReference.cs:4</code>): пара <code>Name</code> + <code>Guid</code> (строки). Создаются
+  <code>CreateReference()</code> (<code>DeviceConfigInfo.cs:450-457</code>, <code>ROIConfigData.cs:203-210</code>).</li>
+<li><code>EnergySpectrum</code> (<code>BecquerelMonitor/EnergySpectrum.cs:6</code>): <code>NumberOfChannels</code>,
+  <code>ChannelPitch</code>, <code>EnergyCalibration</code> (свой экземпляр, клон приборной на момент создания),
+  <code>TotalPulseCount</code>/<code>ValidPulseCount</code>, <code>MeasurementTime</code>/<code>LiveTime</code>, <code>SerialNumber</code>,
+  <code>Spectrum int[]</code> (XmlArrayItem "DataPoint" :117). <code>Increment(value)</code> :172-179 —
+  канал = высота импульса / ChannelPitch.</li>
+</ul>
+<h3>1.7 Результат измерения (runtime, не сериализуется)</h3>
+<ul>
+<li><code>MeasurementResultCollection</code> (<code>MeasurementResultCollection.cs:6</code>): ссылки на
+  <code>ResultData</code>, <code>ROIConfig</code>, <code>MeasurementTime</code>, <code>List&lt;MeasurementResult&gt;</code>.</li>
+<li><code>MeasurementResult</code> (<code>MeasurementResult.cs:4</code>): ссылка на <code>ROIDefinitionData</code> +
+  <code>ResultValue</code>/<code>ResultError</code>/<code>MDA</code>/<code>IsValid</code>.</li>
+<li>Производитель: <code>MeasurementResultManager.Calculate</code> (<code>MeasurementResultManager.cs:136-201</code>)
+  и <code>CalculateROI</code> (:204-437); конверсия единиц — <code>Translate</code> (:10-98), поправка на распад —
+  <code>Correct</code> (:101-133). Результат кладётся в <code>ResultData.MeasurementResultCollection</code>
+  (<code>MainForm.cs:620</code>).</li>
+</ul>
+<h3>1.8 Дозовые структуры</h3>
+<ul>
+<li><code>DoseRateConfig</code> (<code>DoseRateConfig.cs:7</code>) — список <code>DoseRateCalibrationPoint</code>, сериализуется
+  внутри device-XML.</li>
+<li><code>DoseRateCalibrationPoint</code> (<code>DoseRateCalibrationPoint.cs:5</code>): <code>LowerBound</code>/<code>UpperBound</code>
+  (кэВ), <code>CPS</code>, <code>EtalonDoseRateValue</code>; <code>Sensitivity</code> — <strong>вычисляемое</strong> в сеттерах CPS и
+  Etalon (:44-52, :62-72), read-only свойство (:75-81) → в XML не пишется, восстанавливается
+  при десериализации порядком присвоений.</li>
+<li><code>DoseRate</code> (<code>DoseRate.cs</code>) — пара Rate/Error, результат <code>DoseRateManager.Calculate</code>
+  (<code>DoseRateManager.cs:20-81</code>).</li>
+</ul>
+<h3>1.9 LibraryPeakFitter — вход/выход</h3>
+<ul>
+<li>Класс: <code>BecquerelMonitor/LibraryPeakFitter.cs:30</code>. Статический <code>Fit(...)</code> :457-466:
+  вход — <code>EnergySpectrum</code> (+фон), провайдер SNIP-континуума, <code>FwhmCalibration</code>,
+  найденные <code>List&lt;Peak&gt;</code>, <code>NuclideSet</code>, <strong>снимок</strong> <code>List&lt;NuclideDefinition&gt;</code>,
+  <code>FWHMPeakDetectionMethodConfig</code>, опционально <code>ROIConfigData efficiencyConfig</code>
+  (кривая прибора).</li>
+<li>Выход — <code>LibraryFitResult</code> (:421-428): <code>AddedPeaks</code> (<code>LibraryCandidate</code>: Nuclide, Channel,
+  Fwhm, Amplitude, Area, Z :404-419), <code>ReplacedPeaks</code> (центроиды блендов на удаление),
+  <code>AnchorPeaks</code> (пики, включившие фит).</li>
+<li>Внутренняя <code>EfficiencyShape</code> (:302-348) оборачивает <code>ROIAriphmetics</code> над
+  <code>ROIConfigData.ROIEfficiency</code>; вне покрытия узлов — NaN, экстраполяции нет.</li>
+<li>Гейты-переключатели: <code>UseDevianceGate=false</code> :101, <code>UseBackgroundShapeGate=false</code> :128,
+  <code>UseChainConsistencyVeto=true</code> :180 (<code>ChainScatterLimit=1.25</code> :185,
+  <code>ChainConsistencyMinLines=6</code> :202), <code>UseChainVetoFallback=true</code> :217,
+  <code>UseAbsenceVeto=true</code> :235, <code>UseOutlierTrim=false</code> :275.</li>
+</ul>
+<h3>1.10 Peak (runtime)</h3>
+<ul>
+<li><code>BecquerelMonitor/Peak.cs:10</code>: Energy, SNR, FWHM, Channel, <strong><code>Nuclide</code></strong> (ссылка на
+  <code>NuclideDefinition</code>), <code>PeakSearchOrigin</code> (FWHMPeakFinder / RJMCMC / Library),
+  <code>DeconvolutionInfo</code>, <code>IsLibraryAnchor</code>. Живёт в <code>ResultData.DetectedPeaks</code>.</li>
+</ul>
+<h3>1.11 GlobalConfigInfo</h3>
+<ul>
+<li><code>BecquerelMonitor/GlobalConfigInfo.cs:6</code> — окна, язык, <code>MeasurementConfig</code>
+  (DetectionLevel, ErrorLevel, ShowValuesForNDResult), <code>ChartViewConfig</code>, автосохранение.</li>
+<li>Файл <code>%AppData%\BecqMoni\config\BecquerelMonitor.xml</code>
+  (<code>GlobalConfigManager.cs:42-47, 76-81</code>, путь <code>Package.cs:84-94</code>).</li>
+</ul>
+<hr />
+<h2>2. Матрица связей</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Откуда → Куда</th>
+<th>Механизм</th>
+<th>Кто пишет</th>
+<th>Кто читает</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ResultData.DeviceConfigReference → DeviceConfigInfo</td>
+<td><strong>Guid-строка</strong></td>
+<td><code>DCControlPanel.cs:452</code> (выбор в панели), <code>DocEnergySpectrum.cs:414</code> (новый документ)</td>
+<td><code>DocumentManager.PrepareDeviceConfig</code> :1355-1372 — линейный перебор <code>DeviceConfigList</code>, совпадение по <code>Guid</code>; не найдено → <strong>молча</strong> остаётся дефолтный конфиг</td>
+</tr>
+<tr>
+<td>2</td>
+<td>ResultData.ROIConfigReference → ROIConfigData</td>
+<td><strong>Guid-строка</strong></td>
+<td><code>DCControlPanel.cs:483</code>, <code>DocEnergySpectrum.cs:459</code>, <code>DocumentManager.SplitDocEnergySpectrum</code> :1445</td>
+<td><code>DocumentManager.PrepareROIConfig</code> :1375-1390 (то же: тихий не-матч). Поле <code>Name</code> ссылки <strong>никем не читается</strong> (grep по дереву пуст) — чисто информационное</td>
+</tr>
+<tr>
+<td>3</td>
+<td>DeviceConfigInfo.EfficencyROIGuid → ROIConfigData</td>
+<td><strong>Guid-строка</strong></td>
+<td><code>DeviceConfigForm.cs:1715</code> (сброс), :1724 (выбор через словарь index→guid <code>effROIdic</code> :620); <code>SelectROIDialog.cs:111</code> (галочка «привязать к прибору»)</td>
+<td><code>DocEnergySpectrum.CreateResultData</code> :451-457 (кладёт кривую в <code>ResultData.ROIConfig</code> нового спектра), <code>DCPeakDetectionView.BoundEfficiencyConfig</code> :49-58 (в фиттер — только при <code>ROIConfig.Guid == EfficencyROIGuid</code>), <code>DeviceConfigForm.cs:610-612</code>, <code>SelectROIDialog.cs:50-53</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>ResultData → фоновый спектр</td>
+<td><strong>путь к файлу</strong>: сериализуется только имя (<code>BackgroundSpectrumFile</code>), полный путь живёт в <code>[XmlIgnore] BackgroundSpectrumPathname</code> и в <code>DeviceConfigInfo.BackgroundSpectrumPathname</code> (абсолютный)</td>
+<td><code>DCControlPanel.cs:509-510</code>, <code>DocumentManager.CreateDocument</code> :99-100 (путь берётся из конфига прибора)</td>
+<td><code>DocumentManager.LoadBackgroundSpectrum</code> :1393-1436 — читает файл как ResultDataFile и берёт <code>ResultDataList[0].EnergySpectrum</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>NuclideDefinition.Sets → NuclideSet.Id</td>
+<td><strong>HashSet\&lt;Guid&gt;</strong> (настоящий Guid)</td>
+<td><code>NuclideSetForm.cs:200-204</code> (галочки членства), <code>RoiWizard/SetExporter.cs:213</code> (<code>definition.Sets.Add(set.Id)</code>), <code>SetExporter.MergeIntoLibrary</code> :246</td>
+<td><code>PeakDetector.MatchNuclide</code> :365 (<code>Sets.Contains(nuclideSet.Id)</code>), <code>LibraryPeakFitter.Fit</code> :480</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Линия → цепочка распада</td>
+<td><strong>конвенция в строке Name</strong>: текст в ПОСЛЕДНИХ скобках = имя корня («Bi-214 (Ra-226)» → «Ra-226»), без скобок — имя целиком</td>
+<td><code>NucBase/NucBase.cs:501-504</code> (импорт ряда: <code>name += " (корень)"</code>), <code>RoiWizard/SpectralLine.LibraryName</code> :69-105 (та же конвенция + спец-обработка слитых линий и суффиксов «X L»)</td>
+<td><code>LibraryPeakFitter.ChainOf</code> :952-962 → группировка bound-групп :604; <code>RoiWizard/SetChecker.ChainOf</code> :279</td>
+</tr>
+<tr>
+<td>7</td>
+<td>ROIReferenceData.Reference → другая область</td>
+<td><strong>строковое имя</strong> области в том же конфиге</td>
+<td><code>ROIReferenceControl</code> (форма ROI)</td>
+<td><code>MeasurementResultManager.CalculateROI</code> :369-388 — поиск <code>roidefinitionData.Name == reference</code>, рекурсия с лимитом 10 :204-210</td>
+</tr>
+<tr>
+<td>8</td>
+<td>ROIPrimitiveData → алгоритм расчёта</td>
+<td><strong>строковые</strong> PrimitiveType/OperationType</td>
+<td>ROI-формы; <code>SetExporter.AddDifferencePrimitive</code> :96-111 (поиск по имени <code>"BG difference"</code>/<code>"Addition"</code>, намеренно не по индексу — комментарий :78-80)</td>
+<td><code>ROIConfigManager.LoadAllConfigFiles</code> :90-91 (резолв в объекты через <code>DefinitionsMap</code>/<code>OperationsMap</code>), <code>MeasurementResultManager</code> :443-446</td>
+</tr>
+<tr>
+<td>9</td>
+<td>DeviceConfigInfo.DeviceType → контроллер прибора</td>
+<td><strong>строка-Id</strong> → <code>DeviceType.DeviceTypeMap</code> → <code>Type</code> контроллера</td>
+<td>конструкторы/миграции (<code>DeviceConfigInfo.cs:423,506</code>)</td>
+<td><code>MeasurementController.CreateDeviceController</code> :215-260 (<code>Activator.CreateInstance</code>), <code>DeviceConfigForm.cs:432</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Фиттер → кривая эффективности</td>
+<td>передача <code>ROIConfigData</code> параметром; гейт по Guid-равенству</td>
+<td><code>DCPeakDetectionView.cs:217</code> (снапшот: <code>ROIConfig = BoundEfficiencyConfig(...)</code> — глубокая копия)</td>
+<td><code>PeakDetector.AppendLibraryPeaks</code> :113-128 → <code>LibraryPeakFitter.Fit(..., resultData.ROIConfig)</code>; <code>EfficiencyShape.From</code> :313-329 → <code>ROIAriphmetics.CalculateEfficiency</code> (<code>Utils/ROIAriphmetics.cs:26-42</code>, монотонный кубический сплайн :175-176)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Дозовая калибровка: форма ↔ конфиг</td>
+<td>список объектов ↔ строки таблицы</td>
+<td>загрузка <code>DeviceConfigForm.cs:530-540</code>; сохранение :852-861 (таблица → новый список точек)</td>
+<td><code>MainForm.ShowDoseRate</code> :634-647 → <code>DoseRateManager.Calculate</code> :20-81</td>
+</tr>
+<tr>
+<td>12</td>
+<td>ROI-область → коэффициент активности</td>
+<td>число <code>BecquerelCoefficient</code>, <strong>вычисляется при создании области</strong> и замораживается</td>
+<td><code>ROIConfigForm.button9_Click</code> :951-962: <code>K = (1/ε(E)) / (I/100)</code>, ошибка = K·(δε/100) :957-961; вручную — :888-899</td>
+<td><code>MeasurementResultManager.Translate</code> :44-56: <code>Bq = cps·K</code>, ошибка по квадратуре :52</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Активность по выделению (без ROI)</td>
+<td>on-the-fly из кривой + Intencity пика</td>
+<td>—</td>
+<td><code>EnergySpectrumView.cs:736-763</code>: ровно один пик в выделении, <code>Nuclide.Intencity &gt; 0</code>, <code>roiConfig.HasEfficiency</code> → тот же <code>K = (1/ε)/(I/100)</code> :742</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Панель управления → конфиги</td>
+<td><strong>индекс combobox = индекс списка менеджера</strong></td>
+<td>выбор пользователя</td>
+<td><code>DCControlPanel.cs:451</code> (<code>DeviceConfigList[SelectedIndex]</code>), :479 (<code>ROIConfigList[SelectedIndex]</code>); заполнение имён :76-93, обратный поиск по Guid для подсветки :284-312</td>
+</tr>
+<tr>
+<td>15</td>
+<td>SelectROIDialog → выбор кривой</td>
+<td><strong>строковое имя</strong> из combobox → поиск <code>Name ==</code></td>
+<td>—</td>
+<td><code>SelectROIDialog.cs:103-107</code>: коллизия имён ROI-конфигов отдаёт первый попавшийся</td>
+</tr>
+<tr>
+<td>16</td>
+<td>RoiWizard → библиотека и ROI</td>
+<td>объекты через менеджеры (файлы не пишет сам)</td>
+<td><code>RoiWizardForm.cs:1949-1973</code> (<code>CreateConfig</code>/<code>SaveConfig</code>), :2067-2074 (<code>MergeIntoLibrary</code> + <code>SaveDefinitionFile</code>)</td>
+<td>далее штатные читатели менеджеров</td>
+</tr>
+<tr>
+<td>17</td>
+<td>NucBase (nucdb.sqlite) → библиотека</td>
+<td>чтение SQLite (read-only, <code>NucBase/DataBase.cs:18-19</code>) → <code>NuclideDefinition</code></td>
+<td><code>NucBase.cs:438-527</code> (импорт с пересчётом интенсивности на распад корня :448-494)</td>
+<td>далее как 1.5</td>
+</tr>
+<tr>
+<td>18</td>
+<td>LSRM-файл эффективности → ROI-конфиг</td>
+<td>парсинг TSV → <code>ROIEfficiency</code></td>
+<td><code>ROIConfigManager.ImportEffCalcMCtoROI</code> :290-350 (создаёт ROI-файл, состоящий из одной кривой; вызов <code>MainForm.cs:2545</code>), <code>DeviceConfigForm.buttonLoadEff_Click</code> :2436-2491 (для оценки дозовой калибровки)</td>
+<td>читатели кривой (связи 10, 12, 13)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>3. Формы (WinForms) и их роли</h2>
+<ul>
+<li><strong>MainForm</strong> (<code>MainForm.cs</code>) — хаб: таймер 100 мс; каждые ~500 мс
+  <code>ShowMeasurementResult</code> :612-631 (пересчёт активностей активного документа →
+  <code>ResultData.MeasurementResultCollection</code> :620 и раздача в DCResultView) и <code>ShowDoseRate</code>
+  :634-647; первый запуск — копирование поставочного <code>config\</code> в <code>%AppData%\BecqMoni</code>
+  :102-117; инициализация словарей типов :148-151.</li>
+<li><strong>DCControlPanel</strong> (<code>DCControlPanel.cs</code>) — выбор Device/ROI-конфига активного спектра
+  (пишет <code>DeviceConfig(+Reference)</code> :451-452 и <code>ROIConfig(+Reference)</code> :479-483 по индексу
+  списка), назначение/сброс фонового спектра :507-541, старт/стоп измерения.</li>
+<li><strong>DeviceConfigForm</strong> (<code>DeviceConfigForm.cs</code>) — редактор DeviceConfigInfo: калибровка
+  энергии, FWHM/деконволюция, стабилизатор (tableModel3 :843-849), дозовая таблица
+  (tableModel4 :530-540/:852-861) с оценкой по эталонному спектру и LSRM-кривой
+  :2493-2577, привязка кривой эффективности (<code>selectEffROI</code> + словарь index→Guid :615-626,
+  :1720-1727). Сохранение — <code>DeviceConfigManager.SaveConfig</code>.</li>
+<li><strong>ROIConfigForm</strong> (<code>ROIConfigForm.cs</code>) — редактор ROIConfigData: области, примитивы,
+  создание области из нуклида с автоподсчётом <code>BecquerelCoefficient</code> :936-968; кнопка
+  кривой → <strong>ROIEditEfficiencyDialog</strong> (ручной ввод точек <code>ROIEfficiency</code>,
+  <code>ROIEditEfficiencyDialog.cs:39-114</code>).</li>
+<li><strong>NuclideDefinitionForm</strong> (<code>NuclideDefinitionForm.cs</code>) — CRUD записей библиотеки; каждая
+  правка завершается <code>SaveDefinitionFile</code> (:101, :129, :248).</li>
+<li><strong>NuclideSetForm</strong> (<code>NuclideSetForm.cs</code>) — наборы: создаёт <code>NuclideSet</code> (Guid), правит
+  членство <code>def.Sets</code> :200-204; правит и сортирует <strong>живой общий список</strong> — из-за этого
+  детекция работает по снимкам (<code>PeakDetector.cs:13-19</code>, <code>DCPeakDetectionView.cs:222-227</code>).</li>
+<li><strong>DCPeakDetectionView</strong> (<code>DCPeakDetectionView.cs</code>) — запуск детекции пиков: снапшот
+  ResultData на UI-потоке :189-218 (в т.ч. <code>ROIConfig = BoundEfficiencyConfig</code> :217),
+  <code>Task.Run(DetectPeak)</code> :230, результат → <code>ResultData.DetectedPeaks</code> :235.</li>
+<li><strong>DCResultView</strong> (<code>DCResultView.cs</code>) — таблица активностей: получает
+  <code>MeasurementResultCollection</code>, гоняет через <code>Translate</code>(единицы)/<code>Correct</code>(распад)
+  :100-105, сравнивает конфиги по <code>ROIConfig.Guid</code> :91.</li>
+<li><strong>DCSampleInfoView</strong> (<code>DCSampleInfoView.cs:76-93</code>) — пишет <code>SampleInfo</code>
+  (Name/Location/Time/Weight/Volume — знаменатели Бк/кг и Бк/л).</li>
+<li><strong>EnergySpectrumView</strong> (<code>EnergySpectrumView.cs</code>) — отрисовка спектра; берёт
+  <code>roiConfig = activeResultData.ROIConfig</code> :1164; штрихи-маркеры областей по <code>Intencity</code>
+  (<code>ShowROIReferencePeak</code> :2801-2870); аналитика выделения с активностью по кривой
+  :703-763.</li>
+<li><strong>SelectROIDialog</strong> (<code>SelectROIDialog.cs</code>) — выбор кривой эффективности для спектра;
+  умеет записать выбор в конфиг прибора (:108-113).</li>
+<li><strong>RoiWizardForm</strong> (<code>RoiWizard/RoiWizardForm.cs</code>) — конструктор наборов/ROI из каталога
+  nucdb.sqlite; наружу отдаёт объекты через <code>ROIConfigManager</code>/<code>NuclideDefinitionManager</code>
+  (:1949-1973, :2067-2074), сам файлов не пишет.</li>
+<li><strong>NucBase</strong> (<code>NucBase/NucBase.cs</code>) — браузер ядерной базы; импорт линий/рядов в
+  библиотеку :438-527.</li>
+<li><strong>DCEnergyCalibrationView / DCFwhmCalibrationView / DCPulseView / DCCountRateView /
+  DCSpectrumListView</strong> — вспомогательные панели (калибровка по точкам, FWHM, импульсы,
+  скорость счёта, список спектров).</li>
+</ul>
+<hr />
+<h2>4. Потоки данных</h2>
+<h3>4а. Спектр от прибора → калибровка → отображение</h3>
+<ol>
+<li>Старт: <code>MeasurementController.StartRecording</code> → <code>CreateDeviceController</code>
+   (<code>MeasurementController.cs:215-260</code>): по строке <code>DeviceConfig.DeviceType</code> через
+   <code>DeviceType.DeviceTypeMap</code> создаётся контроллер (<code>Activator.CreateInstance</code>).</li>
+<li>Аудио-тракт: <code>AudioInputDeviceController.StartMeasurement</code>
+   (<code>AudioInputDeviceController.cs:28-74</code>) отдаёт детектору импульсов ссылку
+   <code>pulseDetector.EnergySpectrum = resultData.EnergySpectrum</code> (:74).</li>
+<li>Каждый импульс: <code>CorrelativePulseDetector.ProcessPulse</code>
+   (<code>CorrelativePulseDetector.cs:104-112</code>) → <code>EnergySpectrum.Increment(height)</code>
+   (<code>EnergySpectrum.cs:172-179</code>): канал = высота/<code>ChannelPitch</code>, <code>Spectrum[ch]++</code>.</li>
+<li>Калибровка: у спектра <strong>своя</strong> <code>EnergyCalibration</code> — клон приборной на момент создания
+   ResultData (<code>DocEnergySpectrum.cs:416</code>); дальше живёт независимо (правится в
+   DCEnergyCalibrationView / тулстрипе).</li>
+<li>Отображение: <code>DocEnergySpectrum.UpdateEnergySpectrum</code> :478-483 →
+   <code>EnergySpectrumView</code> (каналы→кэВ через <code>ChannelToEnergy</code>, поканальная отрисовка,
+   сглаживание из <code>GlobalConfig.ChartViewConfig</code>).</li>
+<li>При открытии файла обратная сборка связей: <code>DocumentManager.OpenDocument</code> :279-366 →
+   <code>PrepareDeviceConfig</code>/<code>PrepareROIConfig</code> (Guid-матчи), досчёт TotalPulseCount :347-351,
+   <code>ResultDataList[0].Selected = true</code> :363.</li>
+</ol>
+<h3>4б. Активность по ROI — откуда каждая величина A = N/(t·ε·I)</h3>
+<p>Формула в коде разложена на два шага; ε и I «сидят» в заранее посчитанном коэффициенте K:</p>
+<ol>
+<li><strong>N (счёт)</strong>: <code>MeasurementResultManager.CalculateROI</code> (<code>MeasurementResultManager.cs:204-437</code>)
+   — по примитивам области: <code>ROISimpleDifferenceData</code> — сумма каналов
+   [EnergyToChannel(Lower)..(Upper)] :234-261, фон приводится множителем
+   <code>fgTime/bgTime</code> :270-275, при разных калибровках фон пересчитывается канал-в-канал
+   через энергию :251-254; <code>ROICovellMethodData</code> — трапеция по боковым окнам :279-367;
+   <code>ROIReferenceData</code> — счёт другой области по имени :369-391. Вклады примитивов
+   складываются/вычитаются с коэффициентами :393-421.</li>
+<li><strong>t</strong>: <code>MeasurementTime</code> активного спектра (:157, знаменатель в <code>Translate</code> :46).</li>
+<li><strong>ε и I</strong>: <code>K = BecquerelCoefficient</code> области. Пишется при создании области из нуклида:
+   <code>ROIConfigForm.cs:957</code> — <code>K = (1/effData.Efficiency) / (nuclideDefinition.Intencity/100)</code>,
+   где ε — интерполяция <code>ROIAriphmetics.CalculateEfficiency</code> по <code>ROIEfficiency</code> конфига
+   (<code>Utils/ROIAriphmetics.cs:26-42</code>), I — из библиотеки нуклидов. Либо вручную
+   (<code>ROIConfigForm.cs:888</code>). <strong>После записи K живёт своей жизнью</strong> — смена кривой или
+   интенсивности в библиотеке на него не влияет.</li>
+<li><strong>A</strong>: <code>Translate</code> :48 — <code>resultBq = (N/t) · K</code>; ошибка :52 (квадратура счётной и
+   коэффициентной), MDA :55-56; Бк/кг и Бк/л — деление на <code>SampleInfo.Weight/Volume</code>
+   :74-91. Поправка на распад — <code>Correct</code> :101-133 (нужны <code>SampleInfo.Time</code>, <code>EndTime</code>,
+   <code>HalfLife</code> области; HalfLife=0 → пропуск :126).</li>
+<li>MDA внутри CalculateROI — форма Карри :426-435.</li>
+<li>Периодичность: <code>MainForm.ShowMeasurementResult</code> :612-631 (по таймеру) → DCResultView.</li>
+</ol>
+<p>Альтернативная ветка «по выделению»: <code>EnergySpectrumView.cs:736-763</code> — ε и I берутся
+на лету (кривая из <code>ResultData.ROIConfig</code>, I из <code>Peak.Nuclide.Intencity</code>), K не
+замораживается.</p>
+<h3>4в. Идентификация: библиотека → LibraryPeakFitter → вердикты</h3>
+<ol>
+<li>Библиотека и набор: <code>NuclideDefinition.xml</code> → <code>NuclideDefinitionManager</code>;
+   выбранный <code>NuclideSet</code> — в <code>DCPeakDetectionView.selectedNuclideSet</code>.</li>
+<li>Снапшоты на UI-потоке: <code>DCPeakDetectionView.UpdatePeakDetectionResult</code> :189-234
+   (спектр, фон, конфиг, FWHM-калибровка, список нуклидов копией :226-227, кривая
+   эффективности <code>BoundEfficiencyConfig</code> :217).</li>
+<li><code>PeakDetector.DetectPeak</code> (<code>PeakDetector.cs:11-94</code>): FWHM-finder :392-427 →
+   <code>CollectPeaks</code> :217-251 (пик → <code>MatchNuclide</code> :358-376: ближайший по
+   <code>|ΔE|/E &lt; Tolerance/100</code> из видимых линий набора) → опц. RJMCMC-деконволюция :58-79 →
+   <code>AppendLibraryPeaks</code> :100-167.</li>
+<li><code>LibraryPeakFitter.Fit</code> (<code>LibraryPeakFitter.cs:457</code> и далее):
+   - гейт якоря: линия с <code>IsAnchor</code> должна совпасть с найденным пиком в 0.5·FWHM
+     :498-529 (сдвиг калибровки — с сильнейшего якоря);
+   - сайты всех линий набора :539-563 (<code>Chain = ChainOf(line)</code> :561);
+   - bound-группы: кластеризация ближе 0.85·FWHM, в группу — только линии одной цепочки
+     с <code>Intensity &gt; 0</code>, веса ∝ Intencity :598-616;
+   - Пуассон-фит амплитуд; значимость Fisher z ≥ 4 (:35, :2169-2186);
+   - вето по согласованности набора (кривая S/I vs E, <code>ChainConsistent</code> :2016-2096;
+     при наличии внешней кривой — фикс. форма, свободен только масштаб :2042-2066),
+     вето по отсутствиям, запасной shape-гейт — переключатели :101-275;
+   - выход: <code>AddedPeaks</code> (origin=Library, <code>PeakDetector.cs:160</code>), <code>ReplacedPeaks</code>
+     (удаляются из списка :140-143), <code>AnchorPeaks</code> (флаг <code>IsLibraryAnchor</code> :133-136).</li>
+<li>Результат в <code>ResultData.DetectedPeaks</code> (<code>DCPeakDetectionView.cs:235</code>) → таблица пиков и
+   отрисовка.</li>
+</ol>
+<h3>4г. Доза: калибровка → показание</h3>
+<ol>
+<li>Калибровка (ручная): <code>DeviceConfigForm</code> таблица 4 — точки (LowerBound, UpperBound, CPS,
+   EtalonDoseRateValue); сохранение в <code>DoseRateConfig.DoseRateCalibrationPoints</code>
+   :852-861 → device-XML.</li>
+<li>Калибровка (оценка): эталонный спектр (:2411-2434, <strong><code>ResultDataList[0]</code> без проверки</strong>
+   :2430) + LSRM-кривая ε (:2436-2491) + ожидаемая МД →
+   <code>CalculateDoseRateConfig</code> :2522-2577: 16 фиксированных энергоинтервалов 40–3000 кэВ,
+   зашитые таблицы μ(E) и R→Sv :2524-2526; на выходе точки с <code>CPS=1</code> и
+   <code>EtalonDoseRateValue = coeff·μ·(R→Sv)·E/ε</code> :2564-2574.</li>
+<li>Показание: <code>MainForm.ShowDoseRate</code> :634-647 (каждый тик при наличии точек) →
+   <code>DoseRateManager.Calculate</code> (<code>DoseRateManager.cs:20-81</code>): по каждой точке счёт в
+   [EnergyToChannel(Lower)..(Upper)] × <code>point.Sensitivity</code>, сумма / <code>MeasurementTime</code>
+   :57-79; <code>Sensitivity = Etalon/CPS</code> — вычислено сеттерами точки
+   (<code>DoseRateCalibrationPoint.cs:44-52</code>). Вывод — строка статуса.</li>
+</ol>
+<hr />
+<h2>5. Неявные связи и конвенции</h2>
+<ol>
+<li><strong>Цепочка распада в скобках имени.</strong> <code>LibraryPeakFitter.ChainOf</code>
+   (<code>LibraryPeakFitter.cs:949-962</code>): «идентификатор цепочки — текст в последних скобках
+   имени („Bi-214 (Ra-226)“ → „Ra-226“), иначе имя целиком». Писатели конвенции:
+   <code>NucBase/NucBase.cs:503</code> (<code>formattedName += " (" + FormatIsotopeName(...) + ")"</code>),
+   <code>RoiWizard/SpectralLine.cs:69-105</code> (LibraryName выносит интервал слитой линии ИЗ скобок
+   :74-91 и дописывает цепочку линиям с суффиксами :98-103 — иначе «U-238 X L» стал бы
+   собственной цепочкой). Следствие: <strong>переименование нуклида ломает BR-связку молча</strong>,
+   а любые скобки в конце имени читаются как цепочка.</li>
+<li><strong>Intencity — поле с тремя смыслами.</strong> (а) В <code>NuclideDefinition</code> — интенсивность
+   в % <strong>на распад корня цепочки</strong> (пересчёт при импорте ряда, <code>NucBase.cs:448-494</code>;
+   без маркера цепочки — на распад самого нуклида). (б) <strong><code>Intencity == 0</code> — маркер</strong>:
+   запись (ХРИ, вторичный пик) не попадает в BR-связку (<code>LibraryPeakFitter.cs:607</code>
+   <code>members.All(m =&gt; m.Intensity &gt; 0.0)</code>) и не даёт активности по выделению
+   (<code>EnergySpectrumView.cs:736</code>); конвенция задокументирована в
+   <code>RoiWizard/SetExporter.cs:198-212</code>. (в) В <code>ROIDefinitionData</code> — копия для отрисовки
+   штрихов (<code>EnergySpectrumView.ShowROIReferencePeak</code> :2810-2833; условие :2812
+   <code>(Intencity &lt; 100.0 || Intencity &gt; 0.0)</code> — тавтология, истинно для любого числа).</li>
+<li><strong>FormatVersion "120920"</strong> — магическая строка-константа в трёх сущностях
+   (<code>DeviceConfigInfo.cs:473</code>, <code>ROIConfigData.cs:226</code>, <code>ResultDataFile.cs:59</code>);
+   несовпадение у device-конфига включает миграцию из формата 0.97b
+   (<code>DeviceConfigManager.cs:82-89</code>), у ROI — просто перештамповку
+   (<code>ROIConfigManager.cs:82-85</code>).</li>
+<li><strong>Fallback на [0].</strong> Новый спектр получает <code>DeviceConfigList[0]</code>
+   (<code>DocEnergySpectrum.cs:413</code>) и — при отсутствии <code>EfficencyROIGuid</code> —
+   <code>ROIConfigList[0]</code> (:457). Списки отсортированы по <code>LastUpdated</code> убыванием
+   (<code>ROIConfigData.cs:213-217</code>, <code>DeviceConfigInfo.cs:460-464</code>), т.е. «первый» = последний
+   сохранённый, и <strong>состав по умолчанию меняется от любого сохранения любого конфига</strong>.
+   <code>ResultData.ROIConfig</code> при этом — поле двойного назначения: «ROI для таблицы» и
+   «кривая эффективности»; фиттер защищается от чужого конфига проверкой Guid
+   (<code>DCPeakDetectionView.cs:49-58</code>, комментарий :210-216).</li>
+<li><strong>Тихий не-матч Guid при открытии документа.</strong> <code>PrepareDeviceConfig</code>/<code>PrepareROIConfig</code>
+   (<code>DocumentManager.cs:1355-1390</code>) при отсутствии Guid в списках ничего не сообщают;
+   спектр остаётся с дефолтными <strong>непустыми</strong> объектами (<code>ResultData.cs:422,426</code>) —
+   внешне это выглядит как «конфиг есть, но пустой».</li>
+<li><strong>ROIReferenceData.Reference — ссылка по имени области</strong> внутри того же конфига
+   (<code>MeasurementResultManager.cs:374</code> <code>if (roidefinitionData.Name == roireferenceData.Reference)</code>).
+   Переименование области или дубль имени рвёт/двоит ссылку без диагностики; ненайденная
+   ссылка даёт вклад 0 молча (цикл просто не находит).</li>
+<li><strong>SelectROIDialog выбирает по имени</strong> (<code>SelectROIDialog.cs:105</code>
+   <code>ROIConfigDatas[i].Name == comboBox1.SelectedItem.ToString()</code>) — при совпадении имён
+   двух ROI-конфигов вернётся первый по списку, хотя везде остальное — Guid.</li>
+<li><strong>Связь «индекс combobox = индекс списка менеджера»</strong> в панели управления
+   (<code>DCControlPanel.cs:451, 479</code>) и словарь index→Guid в DeviceConfigForm
+   (<code>effROIdic</code>, :620, :1723). Работает, пока список не перестроился между заполнением и
+   выбором.</li>
+<li><strong><code>HasEfficiency</code> = <code>Count &gt; 1</code></strong> (<code>ROIConfigData.cs:130-136</code>) — кривая из одной точки
+   молча считается отсутствующей.</li>
+<li><strong>HalfLife в годах, 0 = «вечный/не поправлять»</strong>: <code>MeasurementResultManager.Correct</code>
+    :120-126 (в поставочных ROI есть HalfLife=0 — комментарий :124-125);
+    конвенция мастера: ≥1e9 лет → писать 0 (<code>SetExporter.cs:59</code>, :193-195 — у ХРИ и
+    вторичных HalfLife не заполняется, «конвенция файла-образца BecqMoni»).</li>
+<li><strong><code>DoseRateCalibrationPoint.Sensitivity</code> — вычисляемое и несериализуемое</strong> (read-only
+    свойство): значение восстанавливается побочным эффектом сеттеров <code>CPS</code> и
+    <code>EtalonDoseRateValue</code> при десериализации (<code>DoseRateCalibrationPoint.cs:35-81</code>).</li>
+<li><strong>Строки-ключи алгоритмов</strong>: примитивы <code>"BG difference"</code>, <code>"Covell Method"</code>,
+    <code>"Reference"</code>; операции <code>"Addition"</code>, <code>"Subtraction"</code>
+    (<code>ROIPrimitiveDefinition.cs:120-126</code>, <code>MeasurementResultManager.cs:443-446</code>);
+    типы приборов <code>"AudioInputDevice"</code>, <code>"AtomSpectraVCP"</code>, <code>"RadiaCode"</code>, <code>"Obsidian"</code>
+    (<code>DeviceType.cs:36-69</code>). Всё это — содержимое пользовательских XML: опечатка в файле
+    = KeyNotFound при загрузке (<code>ROIConfigManager.cs:90-91</code> — в per-file try).</li>
+<li><strong>Поля-близнецы ROI-запись ↔ NuclideDefinition.</strong> При создании области из нуклида
+    копируются Name, PeakEnergy, HalfLife, Intencity (<code>ROIConfigForm.cs:944-950</code>;
+    <code>SetExporter.BuildRoiConfig</code> :51-60) и вычисляется K. Дальше копии живут независимо:
+    правка библиотеки не трогает ROI-файлы, и наоборот. Аналогично «эталонная» связка
+    имён: <code>ROIDefinitionData.Name</code> мастера = <code>SpectralLine.Label</code>, а
+    <code>NuclideDefinition.Name</code> = <code>SpectralLine.LibraryName</code> — похожие, но разные строки.</li>
+<li><strong>Дублирование между ROI-файлами.</strong> Каждый поставочный файл <code>config/ROI/*.xml</code> несёт
+    собственные копии одних и тех же областей (Cs-137, Ra-226, K-40 в «Atom Nano 3»,
+    «Atom Nano 8», «Atom Spectra 2»...); кривая эффективности — тоже per-файл
+    (<code>Obsidian Marinelli 0.5.xml</code> — 150 точек ROIEfficiencyData, большинство остальных — 0).
+    Единственный общий справочник — <code>NuclideDefinition.xml</code>; ROI-файлы с ним не
+    синхронизируются.</li>
+<li><strong>Абсолютный путь фона в конфиге прибора</strong> (<code>DeviceConfigInfo.BackgroundSpectrumPathname</code>)
+    и «имя-файла-без-пути» в спектре (<code>ResultData.BackgroundSpectrumFile</code>) — две половины
+    одной ссылки; при переносе на другую машину работает только та, где путь совпал.</li>
+<li><strong>Runtime-кэш в конфиге</strong>: <code>ROIDefinitionData.IsValidResult/ResultCount/ResultError/MDA</code>
+    — результаты последнего расчёта живут в общем объекте конфига (тот же экземпляр у всех
+    документов, <code>ROIConfigManager</code> отдаёт общий список), <code>MeasurementResultManager.Calculate</code>
+    каждый раз сбрасывает флаги :163-166.</li>
+<li><strong>Снимки против живых списков.</strong> <code>NuclideDefinitions</code> правится и сортируется UI-формами
+    in-place, поэтому детекция работает по копиям (<code>PeakDetector.cs:13-19</code>,
+    <code>DCPeakDetectionView.cs:183-227</code>) — конвенция, а не механизм: любой новый потребитель
+    обязан помнить о снимке сам.</li>
+</ol>
+<hr />
+<h2>6. Каталог файлов конфигурации</h2>
+<h3>6.1 %AppData%\BecqMoni (не-standalone; standalone — те же имена рядом с exe)</h3>
+<p>Пути определяет <code>BecquerelMonitor/Package.cs:36-142</code>; при первом запуске поставочный
+<code>config\</code> рядом с exe копируется в %AppData% целиком (<code>MainForm.cs:102-117</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Путь</th>
+<th>Содержимое</th>
+<th>Читает / пишет</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config\BecquerelMonitor.xml</code></td>
+<td><code>GlobalConfigInfo</code> (окна, язык, MeasurementConfig, ChartViewConfig, автосейв)</td>
+<td><code>GlobalConfigManager</code> (<code>GlobalConfigManager.cs:42-47</code> / :76-81)</td>
+</tr>
+<tr>
+<td><code>config\device\*.xml</code></td>
+<td>по одному <code>DeviceConfigInfo</code> на файл (внутри: калибровка, стабилизатор, DoseRateConfig, EfficencyROIGuid, путь к фону)</td>
+<td><code>DeviceConfigManager</code> (:70-106 / :229-241); имя файла = <code>Filename</code>, ключ = <code>Guid</code>; дубль Guid → отказ с сообщением :92-95</td>
+</tr>
+<tr>
+<td><code>config\ROI\*.xml</code></td>
+<td>по одному <code>ROIConfigData</code> на файл (области + ROIEfficiency)</td>
+<td><code>ROIConfigManager</code> (:70-110 / :247-260); дубль Guid → отказ :96-99</td>
+</tr>
+<tr>
+<td><code>config\NuclideDefinition.xml</code></td>
+<td><code>NuclideDefinitionFile</code>: вся библиотека нуклидов + все NuclideSets</td>
+<td><code>NuclideDefinitionManager</code> (:82-127); при отсутствии создаётся дефолт из 4 записей :130-153</td>
+</tr>
+<tr>
+<td><code>config\layout\*.xml</code></td>
+<td>раскладки DockPanel (<code>ExpertMode.xml</code> в поставке)</td>
+<td><code>MainForm</code> (<code>MainForm.cs:3376</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 Поставка (корень дерева)</h3>
+<ul>
+<li><code>config\</code> — образец, копируемый в %AppData% (см. выше): <code>config/ROI/</code> — 12 файлов
+  (приборные наборы + <code>Ra-226 Intensities.xml</code>, <code>Th-232 Intensities.xml</code>),
+  <code>config/device/</code> — 9 приборных конфигов, <code>config/NuclideDefinition.xml</code>,
+  <code>config/layout/ExpertMode.xml</code>.</li>
+<li><code>BecquerelMonitor\nucdb.sqlite</code> — ядерная база (decay_radiations, nuclides, decay_chain +
+  добавленные families/xrf_elements/xrf_lines/chains/catalog_meta); открывается read-only
+  из текущего каталога (<code>NucBase/DataBase.cs:18-19</code>); потребители — NucBase-формы и
+  <code>RoiWizard/NuclideCatalog</code> (:1-21, singleton :54-60).</li>
+<li><code>LSRM Geometries\</code> — модели и экспортированные кривые эффективности (формат импорта
+  для <code>ImportEffCalcMCtoROI</code> / <code>buttonLoadEff_Click</code>).</li>
+<li>Документы спектров — пользовательские <code>.xml</code> (ResultDataFile), место хранения произвольное.</li>
+</ul>
+<hr />
+<h2>7. Не выяснено</h2>
+<ol>
+<li><strong>Расширение <code>.bmn</code></strong> в коде не встречается; документ спектра — <code>.xml</code>
+   (<code>DocumentManager.cs:23-29</code>). Если <code>.bmn</code> существует в другой ветке/форке — в этом
+   дереве следов нет.</li>
+<li><code>ROIConfigReference.Name</code> / <code>DeviceConfigReference.Name</code> — записываются в файл спектра,
+   но ни одного читателя не найдено (grep по дереву); видимо, задел под «восстановление по
+   имени», который не реализован.</li>
+<li>Насколько <code>ResultData_097b</code>/<code>ResultDataFile_097b</code>/<code>ResultData_093b</code> ещё встречаются у
+   пользователей — из кода не видно; ветки миграции живы (<code>DocumentManager.cs:446-520</code>).</li>
+<li>Формат N42 (три схемы в <code>N42/</code>) прослежен только до <code>Util.ImportFromN42</code>; детальная
+   карта полей N42 ↔ ResultData не строилась.</li>
+<li>Точная семантика <code>EnergySpectrum.SerialNumber</code> (кто пишет при записи с прибора) — не
+   прослежена по всем контроллерам (RadiaCode/Obsidian BLE-тракты не читались построчно).</li>
+<li><code>MeasurementResultCollection</code> нигде не сериализуется — сохранение результатов
+   измерения в файл, по-видимому, происходит только косвенно (через кэш в
+   ROIDefinitionData ничего в XML не уходит: поля XmlIgnore). Экспорт таблицы результатов
+   в файл не искался.</li>
+</ol>
+</body>
+</html>
