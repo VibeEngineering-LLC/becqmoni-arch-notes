@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Волна 0: дефекты — BecqMoni arch notes</title>
+<style>
+body { font-family: "Segoe UI", Calibri, sans-serif; font-size: 15px; line-height: 1.55; color: #222;
+       max-width: 1150px; margin: 0 auto; padding: 0 56px 40px; background: #fff; }
+nav { position: sticky; top: 0; background: #2f5b8f; margin: 0 -56px 28px; padding: 10px 56px; z-index: 5; }
+nav a { color: #dce8f5; text-decoration: none; margin-right: 22px; font-size: 14px; }
+nav a:hover { color: #fff; text-decoration: underline; }
+nav a.act { color: #fff; font-weight: 600; border-bottom: 2px solid #f0c34e; padding-bottom: 2px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 16px; }
+h2 { font-size: 20px; font-weight: 600; margin: 34px 0 12px; border-bottom: 2px solid #2f5b8f; padding-bottom: 4px; }
+h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; color: #2f5b8f; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; display: block; overflow-x: auto; }
+img { max-width: 100%; height: auto; }
+th { background: #2f5b8f; color: #fff; text-align: left; padding: 7px 11px; font-weight: 600; font-size: 14px; }
+td { border: 1px solid #c9d4e0; padding: 7px 11px; vertical-align: top; font-size: 14px; }
+tr:nth-child(even) td { background: #f3f6fa; }
+code { font-family: Consolas, monospace; font-size: 13px; background: #f0f0ec; padding: 0 4px; border-radius: 3px; }
+pre { background: #f6f6f2; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #d9a62e; background: #fdf6e3; margin: 16px 0; padding: 8px 16px; }
+li { margin-bottom: 4px; }
+p, li { text-align: justify; hyphens: auto; }
+hr { border: none; border-top: 1px solid #ccc; margin: 28px 0; }
+img { max-width: 100%; }
+.meta { color: #666; font-size: 13px; margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">Главная</a><a href="best-solutions.html">Обзор функционала</a><a href="bm-arch-tz.html">ТЗ рефакторинга</a><a href="wave0.html" class="act">Волна 0: дефекты</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html">Карта связей BecqMoni</a><a href="menu-map.html">Меню BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a><a href="wizard/">Конструктор (веб)</a></nav>
+<p class="meta"><a href="wave0.md" download>Скачать эту страницу в Markdown</a></p><h1>Волна 0: дефекты, дающие неверные числа сегодня</h1>
+<p>Реестр для передачи автору BecqMoni. База: ветка roi-wizard-reworked, коммит <strong>d80c7ee</strong> (при переносе на master номера строк потребуют пересчёта). Каждый пункт проверен прямым чтением кода или поставочных конфигов; ни один не требует смены модели данных.</p>
+<p>Порядок — по тяжести последствий для пользователя.</p>
+<h2>A. Продукт не работает из коробки</h2>
+<p><strong>A1. Библиотечный фит не стартует никогда на свежей установке.</strong>
+Поставочный <code>config/NuclideDefinition.xml</code> — 77 записей, ноль тегов <code>Sets</code>, ноль <code>IsAnchor</code>, ноль <code>Intencity</code>. Гейт <code>LibraryPeakFitter.cs:480</code> фильтрует линии по членству в наборе, <code>:483-485</code> требует хотя бы один якорь — при пустых <code>Sets</code> фит выходит сразу.
+<em>Оговорка:</em> миграция существующих установок требует <code>FormatVersion</code> в <code>NuclideDefinitionFile</code> (пункт 1 arch-документа), поставочный <code>config/</code> копируется только при отсутствии каталога (<code>MainForm.cs:102-103</code>).</p>
+<p><strong>A2. Активность считается по чужой кривой эффективности — по умолчанию, у всех.</strong>
+<code>EfficencyROIGuid</code> не проставлен ни в одном из 9 файлов <code>config/device/*.xml</code>. <code>DocEnergySpectrum.cs:451-457</code>: при отсутствии Guid берётся <code>ROIConfigList[0]</code>, <code>:459</code> записывает этот Guid в документ. Список отсортирован по <code>LastUpdated</code> (<code>ROIConfigData.cs:213</code>), то есть <code>[0]</code> — произвольный конфиг; на свежей установке это <code>Obsidian Marinelli 0.5.xml</code> — файл с дефектом A3. Запись Guid в документ делает подмену необратимой.</p>
+<p><strong>A3. Узел кривой с физически невозможной эффективностью.</strong>
+<code>config/ROI/Obsidian Marinelli 0.5.xml:59-61</code>: <code>Energy=20</code>, <code>Efficiency=1471.85</code>, <code>ErrorPercent=554</code> при остальных 149 точках в диапазоне 2,8·10⁻⁵…5,6·10⁻³. ε &gt; 1 невозможна; монотонный сплайн утаскивает левый край кривой.</p>
+<h2>B. Молчаливые нули и подмены</h2>
+<p><strong>B4. Области, созданные мастером, дают нулевую активность.</strong>
+<code>RoiWizard/SetExporter.cs:51-60</code> заполняет Name/Enabled/PeakEnergy/границы/Color/HalfLife/Intencity, но не <code>BecquerelCoefficient</code>. Расчёт <code>MeasurementResultManager.cs:48</code> умножает на 0.</p>
+<p><strong>B5. Тихий нуль K неотличим от «не посчитано».</strong>
+<code>ROIConfigForm.cs:951</code> требует <code>HasEfficiency &amp;&amp; Intencity &gt; 0</code>, <code>:955</code> — <code>effData != null &amp;&amp; Efficiency &gt; 0</code>; при провале любого условия K остаётся дефолтным 0 без статуса. Живой репродьюсер в поставке: <code>config/ROI/Ra-226 Intensities.xml</code> — 16 областей с заполненными интенсивностями и K=0 (то же в <code>Th-232 Intensities.xml</code> — 11 областей). Сюда же ветка <code>Utils/ROIAriphmetics.cs:28-31</code>: запрос ε вне <code>[MinEnergy, MaxEnergy]</code> возвращает null, вызывающий код молча пропускает расчёт.</p>
+<p><strong>B6. Ссылка между областями резолвится по имени.</strong>
+<code>MeasurementResultManager.cs:372-386</code>: первая область с совпавшим именем, <code>break</code>. При дубле имён вторая недостижима — в поставке это реально: две области «Co60» (1172 и 1332 кэВ) в <code>Cs134,Cs137,K40.xml</code>, одиннадцать областей «Ra-226» в <code>Ra226 + K40.xml</code>. При отсутствии совпадения цикл проходит вхолостую и netCounts остаются нулями без сообщения.</p>
+<p><strong>B7. Одиннадцать областей с одинаковым коэффициентом.</strong>
+<code>config/ROI/Ra226 + K40.xml</code>: 11 из 12 областей несут <code>BecquerelCoefficient=290</code>. Разные линии Ra-226 с разными ε и I не могут иметь один K — похоже на копирование значения.</p>
+<p><strong>B8. Удельная активность считается «на 1 кг» у не вводивших массу.</strong>
+<code>SampleInfoData.cs:121,124</code>: <code>weight = 1.0</code>, <code>volume = 1.0</code> — «не введено» неотличимо от «ровно 1». Комментарий <code>MeasurementResultManager.cs:75-76</code> «Weight defaults to 0 — guard the denominator» не соответствует фактическому дефолту, гард не срабатывает.
+<em>Оговорка:</em> полное решение требует nullable-семантики полей (правка формата); в Волне 0 закрывается сообщением вместо тихого счёта.</p>
+<h2>C. Доза</h2>
+<p><strong>C9. Падение при нелинейной калибровке.</strong>
+<code>DoseRateManager.cs:32</code> — безусловный каст <code>(PolynomialEnergyCalibration)</code>; <code>NonlinearEnergyCalibration</code> — сестринский класс (оба от <code>EnergyCalibration</code>), штатно сериализуется (<code>DeviceConfigInfo.cs:246-247</code>). Результат — <code>InvalidCastException</code> в тике таймера.</p>
+<p><strong>C10. Показание дозы зависит от режима отображения графика.</strong>
+<code>MainForm.cs:639-641</code> передаёт <code>BackgroundMode</code> из вида спектра; <code>DoseRateManager.cs:23-31</code> при <code>Substract</code> и наличии фона вычитает его, иначе считает по сырому. Переключение галки отображения меняет цифру дозы. Отдельно: при <code>Substract</code> без загруженного фона расчёт молча идёт по сырому спектру — индикатор режима и факт расходятся.</p>
+<p><strong>C11. Двойной учёт граничного канала.</strong>
+Калибровка <code>DeviceConfigForm.cs:2550</code> — <code>j &lt; toChannel</code>; применение <code>DoseRateManager.cs:58</code> — <code>i &lt;= endch</code>, при <code>UpperBound[i] == LowerBound[i+1]</code> канал стыка учитывается дважды.</p>
+<h2>D. Отрисовка и служебное</h2>
+<p><strong>D12. Одна плохая область гасит отрисовку всех последующих.</strong>
+<code>EnergySpectrumView.cs:2879</code> <code>ShowROIBorderLine</code>, обработка <code>:2906-2909</code>: <code>catch (OutofChannelException) { break; }</code> — цикл по областям прерывается (при этом верхняя граница в соседней ветке клампится, асимметрия).</p>
+<p><strong>D13. Масштаб маркеров строится по всем областям.</strong>
+<code>EnergySpectrumView.cs:2812</code>: условие <code>roidefinitionData.Intencity &lt; 100.0 || roidefinitionData.Intencity &gt; 0.0</code> — дизъюнкция истинна при любом значении, фильтр не фильтрует.</p>
+<p><strong>D14. Фоновый спектр разделяется между экземплярами.</strong>
+<code>ResultData.cs:351-352</code> — копирование по ссылке (<code>this.energySpectrum = old.EnergySpectrum</code>, <code>this.backgroundEnergySpectrum = old.BackgroundEnergySpectrum</code>), тогда как парный конструктор <code>:386-387</code> делает глубокую копию обоих.</p>
+<p><strong>D15. Исключение при удалённом конфиге EasyControl.</strong>
+<code>MainForm.cs:2670</code>, <code>:2680</code> — прямая индексация словаря без проверки ключа: <code>KeyNotFoundException</code>, если конфиг, на который ссылается EasyControl, удалён.</p>
+<h2>Как проверять</h2>
+<p>Числовые последствия A1–C11 фиксируются прогоном корпуса <code>tools/LibraryFitLab</code> (69 спектров, 23 группы детекторов) до и после правки: каждый закрытый дефект получает запись «что изменилось в числах», расхождения вне этого списка считаются регрессией. D12–D15 проверяются вручную.</p>
+</body>
+</html>

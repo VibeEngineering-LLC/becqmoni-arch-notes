@@ -10,7 +10,7 @@
 
 | Страница | Содержание |
 |---|---|
-| [ТЗ рефакторинга](https://vibeengineering-llc.github.io/becqmoni-arch-notes/bm-arch-tz.html) | **Центральный документ**: концепт (живой расчёт + снапшот результата), схема тракта анализа, три уровня активности, 8 этапов работ, правила совместимости, 12 сценариев приёмки |
+| [ТЗ рефакторинга](https://vibeengineering-llc.github.io/becqmoni-arch-notes/bm-arch-tz.html) | **Центральный документ**: концепт (живой расчёт + воспроизводимость результата), схема тракта анализа, три уровня активности, Волна 0 и девять этапов в двух частях, правила совместимости, 13 сценариев приёмки |
 | [Обзор функционала](https://vibeengineering-llc.github.io/becqmoni-arch-notes/best-solutions.html) | Функциональная карта экосистем BecqMoni и LSRM, 22 наиболее удачных решения с оценкой переносимости |
 | [BecqMoni ↔ SpectraLine](https://vibeengineering-llc.github.io/becqmoni-arch-notes/comparison.html) | Сравнительный анализ архитектуры, функционала и алгоритмов (каждая ячейка BM-колонки — с адресом файл:строка) |
 | [Карта связей BecqMoni](https://vibeengineering-llc.github.io/becqmoni-arch-notes/arch-map.html) | Реестр сущностей, матрица связей, неявные конвенции, потоки данных — по коду ветки roi-wizard-reworked |

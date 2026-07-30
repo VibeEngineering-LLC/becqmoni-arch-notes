@@ -31,14 +31,10 @@ img { max-width: 100%; }
 </style>
 </head>
 <body>
-<nav><a href="index.html">Главная</a><a href="best-solutions.html" class="act">Обзор функционала</a><a href="bm-arch-tz.html">ТЗ рефакторинга</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html">Карта связей BecqMoni</a><a href="menu-map.html">Меню BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a><a href="wizard/">Конструктор (веб)</a></nav>
+<nav><a href="index.html">Главная</a><a href="best-solutions.html" class="act">Обзор функционала</a><a href="bm-arch-tz.html">ТЗ рефакторинга</a><a href="wave0.html">Волна 0: дефекты</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html">Карта связей BecqMoni</a><a href="menu-map.html">Меню BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a><a href="wizard/">Конструктор (веб)</a></nav>
 <p class="meta"><a href="best-solutions.md" download>Скачать эту страницу в Markdown</a></p><h1>Общий функционал экосистем BecqMoni и LSRM: анализ и наиболее удачные решения</h1>
 <p>Дата: 30.07.2026. Линия ARCH-BECQMONI (задача-максимум: осознать функционал всех программ, предложить оптимизацию архитектуры BecqMoni).</p>
-<p>Источники (материалы этой линии; перекрёстный аудит 30.07 с 460+ проверками прошла сравнительная таблица, остальные конспекты — внутренние проверенные документы линии):
-- <code>BECQMONI-VS-SPECTRALINE.md</code> ревизия 4 (BecqMoni — по коду d80c7ee, каждая ячейка файл:строка; 460+ проверок кросс-аудита);
-- <code>SPECTRALINE-BG-NOTES.md</code> (документация ЛСРМ, ссылки на страницы PDF);
-- <code>NUCLIDEMASTER-NOTES.md</code> (документация NuclideMaster 2.10 / Plus);
-- <code>BECQMONI-ARCH-MAP.md</code> (карта связей BecqMoni по коду).</p>
+<p>Источники — страницы этого же репозитория: сравнение «BecqMoni ↔ SpectraLine» (ревизия 4; BecqMoni — по коду d80c7ee, каждая ячейка с адресом файл:строка, 460+ проверок перекрёстного аудита), конспекты документации SpectraLineBG и NuclideMaster (ссылки на страницы PDF), карта связей BecqMoni по коду.</p>
 <p>Утверждения о SpectraLine/NuclideMaster — по документации (кода нет); о BecqMoni — по коду.</p>
 <hr />
 <h2>1. Функциональная карта: ключевые блоки</h2>
@@ -293,13 +289,13 @@ Read-only база нуклидов/линий/цепочек внутри пр�
 <td>Снапшот использованных ε/I/геометрии в результате (идея .spef, Р1)</td>
 <td>LSRM</td>
 <td>BecqMoni</td>
-<td>ядро рефакторинга; пункт В1 встречных предложений к arch-документу</td>
+<td>ядро рефакторинга; наш пункт В1 к arch-документу (состояние линии, вне скоупа источников этого файла)</td>
 </tr>
 <tr>
 <td>Паспорт кривой/геометрии (Р2)</td>
 <td>LSRM</td>
 <td>BecqMoni</td>
-<td>форма сущности «геометрия» arch-документа; открыт вопрос матрицы образца (вопрос матрицы образца, встречный пункт В5)</td>
+<td>форма сущности «геометрия» arch-документа; открыт вопрос матрицы образца (наш В5, состояние линии)</td>
 </tr>
 <tr>
 <td>√E-окно идентификации (Р5)</td>
@@ -317,7 +313,7 @@ Read-only база нуклидов/линий/цепочек внутри пр�
 <td>ISO 11929-отчёт (Р7)</td>
 <td>LSRM</td>
 <td>BecqMoni</td>
-<td>средняя цена; поднимает BM из «индикатора» в «измеритель»</td>
+<td>оправдан только при подписываемом протоколе; в текущий скоуп рефакторинга не входит (Lc/Ld/Lq на выделении уже есть)</td>
 </tr>
 <tr>
 <td>Индексация линий (Р11)</td>
@@ -329,7 +325,7 @@ Read-only база нуклидов/линий/цепочек внутри пр�
 <td>Равновесная нормировка (Р12)</td>
 <td>NM</td>
 <td>BecqMoni / ROI Wizard</td>
-<td>в веб-справочнике цепочек ROI Wizard уже реализована; перенос в WinForms-конструктор (Р22) — после формализации корня цепочки</td>
+<td>в веб-справочнике цепочек ROI Wizard уже реализована нами; перенос в WinForms-конструктор (Р22) — после атрибута корня цепочки (состояние линии, вне скоупа источников)</td>
 </tr>
 <tr>
 <td>Индексация линий (Р11) + конструктор (Р22)</td>
