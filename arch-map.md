@@ -11,6 +11,8 @@ read-only, только чтение кода.
 (`BecquerelMonitor/DocumentManager.cs:23-29` — `Extension => ".xml"`, фильтр диалогов
 `Properties/Resources.resx`: `Spectrum Files (*.xml)`).
 
+![Карта связей BecqMoni сейчас](figures/becqmoni-links-now.svg)
+
 ---
 
 ## 1. Реестр сущностей данных
