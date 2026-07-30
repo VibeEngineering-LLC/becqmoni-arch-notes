@@ -33,9 +33,11 @@ img { max-width: 100%; }
 <body>
 <nav><a href="index.html">Главная</a><a href="best-solutions.html">Обзор функционала</a><a href="bm-arch-tz.html">ТЗ рефакторинга</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html" class="act">Карта связей BecqMoni</a><a href="menu-map.html">Меню BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a><a href="wizard/">Конструктор (веб)</a></nav>
 <p class="meta"><a href="arch-map.md" download>Скачать эту страницу в Markdown</a></p><h1>BecqMoni — карта связей модулей и данных</h1>
-<p>Дерево: <code>&lt;клон BecqMoni&gt;</code> (ветка fix/roi-wizard-defects), проект
-<code>BecquerelMonitor</code> (C#/WinForms). Все пути ниже — от корня дерева; строки — по состоянию
-рабочей копии на 30.07.2026. Режим обследования: read-only, только чтение кода.</p>
+<p>Дерево: <code>&lt;клон BecqMoni&gt;</code>, коммит <strong>d80c7ee</strong> — вершина локальной ветки
+fix/roi-wizard-defects, влитой fast-forward в roi-wizard-reworked на GitHub; рабочая копия
+чистая (git status пуст), т.е. все номера строк воспроизводимы по d80c7ee. Проект
+<code>BecquerelMonitor</code> (C#/WinForms). Все пути ниже — от корня дерева; обследование 30.07.2026,
+read-only, только чтение кода.</p>
 <p>Примечание о формате документа спектра: в задании упоминалось расширение «.bmn» —
 в этом дереве его нет. Документ спектра сериализуется в <strong>.xml</strong>
 (<code>BecquerelMonitor/DocumentManager.cs:23-29</code> — <code>Extension =&gt; ".xml"</code>, фильтр диалогов
@@ -590,11 +592,11 @@ img { max-width: 100%; }
     с диалогом «Invalid device type» в рантайме (<code>MeasurementController.cs:224-228</code>,
     <code>DeviceConfigForm.cs:432</code>).</li>
 <li><strong>Поля-близнецы ROI-запись ↔ NuclideDefinition.</strong> При создании области из нуклида
-    копируются Name, PeakEnergy, HalfLife, Intencity — но ТОЛЬКО путь ROIConfigForm
-    вычисляет BecquerelCoefficient; <code>SetExporter.BuildRoiConfig</code> :51-60 присваивает
-    Name/Enabled/PeakEnergy/границы/Color/HalfLife/Intencity БЕЗ K — области мастера
-    получают K=0 и дают нулевую активность (в пакет автору) (<code>ROIConfigForm.cs:944-950</code>;
-    <code>SetExporter.BuildRoiConfig</code> :51-60) и вычисляется K. Дальше копии живут независимо:
+    копируются Name, PeakEnergy, HalfLife, Intencity; K вычисляется ТОЛЬКО на пути
+    ROIConfigForm (<code>ROIConfigForm.cs:944-950</code>, формула :957). <code>SetExporter.BuildRoiConfig</code>
+    (<code>SetExporter.cs:51-60</code>) присваивает Name/Enabled/PeakEnergy/границы/Color/HalfLife/
+    Intencity БЕЗ BecquerelCoefficient — области мастера получают K=0 и дают нулевую
+    активность (в пакет автору). Дальше копии живут независимо:
     правка библиотеки не трогает ROI-файлы, и наоборот. Аналогично «эталонная» связка
     имён: <code>ROIDefinitionData.Name</code> мастера = <code>SpectralLine.Label</code>, а
     <code>NuclideDefinition.Name</code> = <code>SpectralLine.LibraryName</code> — похожие, но разные строки.</li>

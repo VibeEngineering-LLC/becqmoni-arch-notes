@@ -1,8 +1,10 @@
 # BecqMoni — карта связей модулей и данных
 
-Дерево: `<клон BecqMoni>` (ветка fix/roi-wizard-defects), проект
-`BecquerelMonitor` (C#/WinForms). Все пути ниже — от корня дерева; строки — по состоянию
-рабочей копии на 30.07.2026. Режим обследования: read-only, только чтение кода.
+Дерево: `<клон BecqMoni>`, коммит **d80c7ee** — вершина локальной ветки
+fix/roi-wizard-defects, влитой fast-forward в roi-wizard-reworked на GitHub; рабочая копия
+чистая (git status пуст), т.е. все номера строк воспроизводимы по d80c7ee. Проект
+`BecquerelMonitor` (C#/WinForms). Все пути ниже — от корня дерева; обследование 30.07.2026,
+read-only, только чтение кода.
 
 Примечание о формате документа спектра: в задании упоминалось расширение «.bmn» —
 в этом дереве его нет. Документ спектра сериализуется в **.xml**
@@ -430,11 +432,11 @@
     с диалогом «Invalid device type» в рантайме (`MeasurementController.cs:224-228`,
     `DeviceConfigForm.cs:432`).
 13. **Поля-близнецы ROI-запись ↔ NuclideDefinition.** При создании области из нуклида
-    копируются Name, PeakEnergy, HalfLife, Intencity — но ТОЛЬКО путь ROIConfigForm
-    вычисляет BecquerelCoefficient; `SetExporter.BuildRoiConfig` :51-60 присваивает
-    Name/Enabled/PeakEnergy/границы/Color/HalfLife/Intencity БЕЗ K — области мастера
-    получают K=0 и дают нулевую активность (в пакет автору) (`ROIConfigForm.cs:944-950`;
-    `SetExporter.BuildRoiConfig` :51-60) и вычисляется K. Дальше копии живут независимо:
+    копируются Name, PeakEnergy, HalfLife, Intencity; K вычисляется ТОЛЬКО на пути
+    ROIConfigForm (`ROIConfigForm.cs:944-950`, формула :957). `SetExporter.BuildRoiConfig`
+    (`SetExporter.cs:51-60`) присваивает Name/Enabled/PeakEnergy/границы/Color/HalfLife/
+    Intencity БЕЗ BecquerelCoefficient — области мастера получают K=0 и дают нулевую
+    активность (в пакет автору). Дальше копии живут независимо:
     правка библиотеки не трогает ROI-файлы, и наоборот. Аналогично «эталонная» связка
     имён: `ROIDefinitionData.Name` мастера = `SpectralLine.Label`, а
     `NuclideDefinition.Name` = `SpectralLine.LibraryName` — похожие, но разные строки.
