@@ -22,9 +22,9 @@
   <rect x="40" y="60" width="240" height="140" rx="8" class="box"/>
   <text x="54" y="84" class="title">Device — прибор</text>
   <text x="54" y="106" class="line">драйвер (звук / VCP / BLE)</text>
-  <text x="54" y="124" class="line">калибровки E и FWHM</text>
-  <text x="54" y="142" class="line">умолчание геометрии</text>
-  <text x="54" y="160" class="line">дозовые параметры</text>
+  <text x="54" y="124" class="line">калибровки E, FWHM,</text>
+  <text x="54" y="142" class="line">форма пика (мастер-копия)</text>
+  <text x="54" y="160" class="line">умолчание геометрии; доза</text>
 
   <rect x="330" y="60" width="260" height="150" rx="8" class="newbox"/>
   <text x="344" y="84" class="title">Geometry (НОВОЕ)</text>
@@ -61,29 +61,31 @@
   <text x="1168" y="117" class="lbl">индексы</text>
 
   <!-- КОНВЕЙЕР -->
-  <rect x="40" y="310" width="240" height="150" rx="8" class="stage"/>
+  <rect x="40" y="310" width="240" height="170" rx="8" class="stage"/>
   <text x="54" y="334" class="title">1 · Набор спектра</text>
-  <text x="54" y="356" class="line">приём с прибора,</text>
-  <text x="54" y="374" class="line">калибровки из Device,</text>
-  <text x="54" y="392" class="line">стабилизация шкалы,</text>
-  <text x="54" y="410" class="line">фон</text>
+  <text x="54" y="356" class="line">приём с прибора, фон;</text>
+  <text x="54" y="374" class="line">калибровка E: шкала</text>
+  <text x="54" y="392" class="line">канал→энергия (рабочая</text>
+  <text x="54" y="410" class="line">копия — в документе);</text>
+  <text x="54" y="428" class="line">стабилизация шкалы на лету</text>
 
-  <rect x="320" y="310" width="240" height="150" rx="8" class="stage"/>
+  <rect x="320" y="310" width="240" height="170" rx="8" class="stage"/>
   <text x="334" y="334" class="title">2 · Образец и геометрия</text>
   <text x="334" y="356" class="line">SampleInfo: масса, сосуд;</text>
   <text x="334" y="374" class="line">выбор геометрии</text>
   <text x="334" y="392" class="line">(или умолчание прибора);</text>
   <text x="334" y="410" class="line">«не выбрана» — видно</text>
 
-  <rect x="600" y="310" width="260" height="150" rx="8" class="stage"/>
+  <rect x="600" y="310" width="260" height="170" rx="8" class="stage"/>
   <text x="614" y="334" class="title">3 · Счёт</text>
-  <text x="614" y="356" class="line">тракт А: зоны + правила</text>
-  <text x="614" y="374" class="line">→ net cps</text>
-  <text x="614" y="392" class="line">тракт В: фиттер → площади</text>
-  <text x="614" y="410" class="line">S_jk линий, идентификация</text>
-  <text x="614" y="428" class="line">(тракт Б: выделение)</text>
+  <text x="614" y="354" class="line">поиск пиков: matched-фильтр</text>
+  <text x="614" y="372" class="line">+ RJMCMC-деконволюция (опция);</text>
+  <text x="614" y="390" class="line">FWHM и форма пика — из Device</text>
+  <text x="614" y="412" class="line">тракт А: зоны + правила → net cps</text>
+  <text x="614" y="430" class="line">тракт В: фиттер → площади S_jk</text>
+  <text x="614" y="448" class="line">(тракт Б: выделение)</text>
 
-  <rect x="900" y="310" width="240" height="150" rx="8" class="stage"/>
+  <rect x="900" y="310" width="240" height="170" rx="8" class="stage"/>
   <text x="914" y="334" class="title">4 · Активность</text>
   <text x="914" y="356" class="line">A = net / (ε(E)·I/100)</text>
   <text x="914" y="374" class="line">ε — из геометрии,</text>
@@ -91,7 +93,7 @@
   <text x="914" y="410" class="line">ручной K — видимое</text>
   <text x="914" y="428" class="line">переопределение</text>
 
-  <rect x="1180" y="310" width="200" height="150" rx="8" class="stage newbox"/>
+  <rect x="1180" y="310" width="200" height="170" rx="8" class="stage newbox"/>
   <text x="1194" y="334" class="title">5 · Результат</text>
   <text x="1194" y="356" class="line">A ± σ, МДА</text>
   <text x="1194" y="374" class="line">снапшот: ε, I, версии,</text>
