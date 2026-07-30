@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Меню BecqMoni — BecqMoni arch notes</title>
+<style>
+body { font-family: "Segoe UI", Calibri, sans-serif; font-size: 15px; line-height: 1.55; color: #222;
+       max-width: 1150px; margin: 0 auto; padding: 0 56px 40px; background: #fff; }
+nav { position: sticky; top: 0; background: #2f5b8f; margin: 0 -56px 28px; padding: 10px 56px; z-index: 5; }
+nav a { color: #dce8f5; text-decoration: none; margin-right: 22px; font-size: 14px; }
+nav a:hover { color: #fff; text-decoration: underline; }
+nav a.act { color: #fff; font-weight: 600; border-bottom: 2px solid #f0c34e; padding-bottom: 2px; }
+h1 { font-size: 26px; font-weight: 600; margin: 0 0 16px; }
+h2 { font-size: 20px; font-weight: 600; margin: 34px 0 12px; border-bottom: 2px solid #2f5b8f; padding-bottom: 4px; }
+h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; color: #2f5b8f; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; }
+th { background: #2f5b8f; color: #fff; text-align: left; padding: 7px 11px; font-weight: 600; font-size: 14px; }
+td { border: 1px solid #c9d4e0; padding: 7px 11px; vertical-align: top; font-size: 14px; }
+tr:nth-child(even) td { background: #f3f6fa; }
+code { font-family: Consolas, monospace; font-size: 13px; background: #f0f0ec; padding: 0 4px; border-radius: 3px; }
+pre { background: #f6f6f2; border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+blockquote { border-left: 4px solid #d9a62e; background: #fdf6e3; margin: 16px 0; padding: 8px 16px; }
+li { margin-bottom: 4px; }
+hr { border: none; border-top: 1px solid #ccc; margin: 28px 0; }
+img { max-width: 100%; }
+.meta { color: #666; font-size: 13px; margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<nav><a href="index.html">Обзор</a><a href="comparison.html">BecqMoni ↔ SpectraLine</a><a href="arch-map.html">Карта связей BecqMoni</a><a href="menu-map.html" class="act">Меню BecqMoni</a><a href="spectraline.html">SpectraLineBG</a><a href="nuclidemaster.html">NuclideMaster</a></nav>
+<p class="meta"><a href="menu-map.md" download>Скачать эту страницу в Markdown</a></p><h1>Карта меню BecqMoni (BecquerelMonitor)</h1>
+<p><strong>Источник:</strong> клон <code>&lt;клон BecqMoni&gt;</code>, HEAD <code>d80c7ee</code> (локальная ветка <code>fix/roi-wizard-defects</code>,
+линия roi-wizard-reworked). Построено только по коду:
+<code>BecquerelMonitor\MainForm.Designer.cs</code> (структура MenuStrip), <code>BecquerelMonitor\MainForm.cs</code> (обработчики),
+<code>BecquerelMonitor\MainForm.ru.resx</code> / <code>MainForm.resx</code> (подписи), <code>DocEnergySpectrum.Designer.cs</code>/<code>.cs</code>/<code>.resx</code>/<code>.ru.resx</code>
+(тулбары и контекстное меню спектра), <code>DCPeakDetectionView.*</code>, <code>Utils\CalibrationGraph.*</code>, <code>Utils\FWHMCalibrationGraph.*</code>,
+<code>ToolWindow.*</code>, <code>RoiWizard\RoiWizardForm.*</code>.</p>
+<p>Подписи: <strong>русская из ru.resx / английская из neutral resx</strong>. Если русского ключа в ru.resx нет — пункт
+и в русской локали показывается по-английски (WinForms fallback), это помечено «(RU-ключа нет)».
+Все строки/номера указаны в файлах каталога <code>&lt;клон BecqMoni&gt;\BecquerelMonitor\</code>.</p>
+<p>Главное меню MainForm: пять топ-пунктов (<code>MainForm.Designer.cs:113-118</code>). Собственного тулбара у MainForm <strong>нет</strong> —
+только MenuStrip и StatusStrip; тулбары живут в окне спектра DocEnergySpectrum (см. раздел «Тулбары»).</p>
+<hr />
+<h2>1. Главное меню</h2>
+<h3>Файл / &amp;File (<code>fileFToolStripMenuItem</code>)</h3>
+<p>При раскрытии пункты Сохранить/Закрыть/Объединение включаются по наличию активного документа — <code>MainForm.cs:1736</code>.</p>
+<ul>
+<li><strong>Новый / &amp;New</strong> — <code>Ctrl+N</code> — создаёт новый документ спектра (<code>documentManager.CreateDocument()</code>) и показывает его в док-панели — <code>MainForm.cs:920</code></li>
+<li><strong>Открыть... / &amp;Open...</strong> — <code>Ctrl+O</code> — OpenFileDialog (мультивыбор), каждый файл открывается <code>documentManager.OpenDocument()</code> — <code>MainForm.cs:949</code></li>
+<li><strong>Сохранить / &amp;Save</strong> — <code>Ctrl+S</code> — <code>SaveActiveDocument()</code> → <code>documentManager.SaveDocument()</code>; безымянный документ уходит в «Сохранить как» — <code>MainForm.cs:1670</code> (логика <code>MainForm.cs:1689,1703</code>)</li>
+<li><strong>Сохранить как / Save &amp;As...</strong> — <code>SaveDocumentWithName()</code> → <code>documentManager.SaveDocumentWithName()</code> — <code>MainForm.cs:1719</code></li>
+<li><strong>Закрыть / &amp;Close</strong> — <code>Ctrl+W</code> — <code>CloseActiveDocument()</code>: подтверждение сохранения, остановка записи, закрытие документа — <code>MainForm.cs:1421</code> (логика <code>MainForm.cs:1552</code>)</li>
+<li><strong>О&amp;бъединение спектров / Co&amp;mbine Spectras</strong> — открывает файл спектра и суммирует его с активным документом (<code>SpectrumAriphmetics.CombineWith</code>) — <code>MainForm.cs:1435</code></li>
+<li><strong>Закрыть &amp;Всё / Close &amp;All</strong> — цикл <code>CloseActiveDocument()</code> по всем открытым документам — <code>MainForm.cs:1426</code></li>
+<li>─────</li>
+<li><strong>Импорт / &amp;Import</strong> (подменю):</li>
+<li><strong>Формат Atom Spectra v3 / Atom Spectra v3 format</strong> — мультивыбор файлов, каждый импортируется в новый документ (<code>ImportDocumentAtomSpectra</code>) — <code>MainForm.cs:2727</code></li>
+<li><strong>Файл формата N42 / N42 file format</strong> — импорт одного N42-файла в новый документ (<code>ImportDocumentN42</code>) — <code>MainForm.cs:2749</code></li>
+<li><strong>CSV (Channel,Counts) Файл / CSV (Channel,Counts) File</strong> — импорт CSV канал-счёт в новый документ (<code>ImportCsvToDocument</code>, preset time берётся из панели управления) — <code>MainForm.cs:2610</code></li>
+<li><strong>LSRM EffCalcMC.txt -&gt; ROI</strong> (RU-ключа нет) — выбор файла EffCalcMC + диалог <code>EffCalcMCDialog</code> (имя ROI); <code>roiConfigManager.ImportEffCalcMCtoROI()</code> создаёт конфигурацию ROI из расчёта эффективности, обновляет список ROI в панели управления — <code>MainForm.cs:2529</code> ← <strong>добавлено веткой roi-wizard</strong></li>
+<li><strong>CSV (Energy,Counts) Файл / CSV (Energy,Counts) File</strong> — импорт CSV энергия-счёт (<code>ImportCsvEnergyToDocument</code>) — <code>MainForm.cs:2628</code></li>
+<li><strong>SpectraLine GBS</strong> (RU-ключа нет) — мультивыбор, импорт GBS-файлов SpectraLine (<code>ImportDocumentGBS</code>) — <code>MainForm.cs:2556</code></li>
+<li><strong>Импорт при помощи SpectUtils.. / Import using SpectUtils..</strong> — мультивыбор, импорт через библиотеку SpecUtils (<code>ImportDocumentSpecUtils</code>) — <code>MainForm.cs:2582</code></li>
+<li><strong>Старый формат BecqMoni (v0.93Beta или ранее) / BecqMoni old format (v0.93Beta or earlier)</strong> — <code>ImportDocument093b()</code> — <code>MainForm.cs:2702</code></li>
+<li><strong>Экспорт / &amp;Export</strong> (подменю):</li>
+<li><strong>Файл N42 / N42 file</strong> — <code>ExportDocumentN42(activeDocument)</code> — <code>MainForm.cs:2767</code></li>
+<li><strong>Формат Atom Spectra v3 / Atom Spectra v3 format</strong> — <code>ExportDocumentAtomSpectra(activeDocument)</code> — <code>MainForm.cs:2776</code></li>
+<li><strong>Файл &amp;CSV / &amp;CSV File</strong> — <code>ExportDocumentToCsv(activeDocument)</code> — <code>MainForm.cs:1837</code></li>
+<li><strong>&amp;Расширенный CSV файл / &amp;Extended CSV File</strong> — <code>ExportDocumentToECSV</code> с учётом текущего режима фона и сглаживания окна спектра — <code>MainForm.cs:1845</code></li>
+<li><strong>для FWHM / for FWHM</strong> — пишет <code>fwhm.txt</code>: участок 627–780 кэВ с вычетом линейной подложки, опорные точки 530 и 780 кэВ (жёстко зашитый диапазон пика Cs-137; кодировка файла 932/Shift-JIS) — <code>MainForm.cs:3056</code></li>
+<li>─────</li>
+<li><strong>Выход / E&amp;xit</strong> — <code>Close()</code> главной формы — <code>MainForm.cs:752</code></li>
+</ul>
+<h3>Спектр / &amp;Spectrum (<code>spectrumSToolStripMenuItem</code>)</h3>
+<p>Пункты действуют на активный спектр (ResultData) внутри активного документа. Доступность пересчитывается
+при раскрытии: лимит спектров в файле, наличие фона, состояние записи — <code>MainForm.cs:1747</code>.</p>
+<ul>
+<li><strong>Новый / &amp;New</strong> — <code>AddNewSpectrum()</code>: добавляет новый спектр в активный документ, подтягивает фон из конфигурации устройства — <code>MainForm.cs:2871</code> (логика <code>MainForm.cs:2174</code>)</li>
+<li><strong>Удалить / &amp;Delete</strong> — <code>DeleteActiveSpectrum()</code>: удаляет активный спектр с подтверждением; последний спектр удалить нельзя — <code>MainForm.cs:2877</code> (логика <code>MainForm.cs:2251</code>)</li>
+<li><strong>Импорт из файла / &amp;Import from File</strong> — <code>LoadSpectrumFromFile()</code>: добавляет спектры из выбранных файлов в текущий документ — <code>MainForm.cs:2883</code> (логика <code>MainForm.cs:2339</code>)</li>
+<li><strong>&amp;Export Spectrum to File</strong> (RU-ключа <code>exportToFileStripMenuItem</code> нет; в ru.resx остался старый ключ <code>toolStripMenuItem1</code> = «Экспорт спектра в файл», он не применяется) — <code>SaveSpectrumToFile()</code> через SaveFileDialog — <code>MainForm.cs:2889</code> (логика <code>MainForm.cs:2477</code>)</li>
+<li><strong>Экспортировать спектр фона в файл / Export Background Spectrum to File</strong> — <code>SaveBGSpectrumToFile()</code>: сохраняет фоновый спектр активного документа в файл — <code>MainForm.cs:2894</code> (логика <code>MainForm.cs:2429</code>)</li>
+<li><strong>Жёсткий вычет в файл / Hard subtract to File</strong> — <code>SaveHardSubtractSpectrumToFile()</code>: спектр минус фон, результат в файл — <code>MainForm.cs:2899</code> (логика <code>MainForm.cs:2380</code>)</li>
+<li><strong>Изменить число каналов / Change channel number</strong> — диалог <code>ChanNumberChangeDialog</code> → <code>ConcatSpectrums()</code>: пересборка спектра (сжатие/восстановление каналов) в новый документ — <code>MainForm.cs:2940</code> (логика <code>MainForm.cs:1468</code>)</li>
+<li><strong>Ограничить энергию или канал / Cutoff energy or channel</strong> — диалог <code>SpectrumCutOffDialog</code> → <code>Cutoff()</code>: обрезка спектра по энергии или каналу в новый документ — <code>MainForm.cs:2967</code> (логика <code>MainForm.cs:3006</code>)</li>
+<li><strong>Нормализовать спектр по ROI / Normalize spectrum with ROI</strong> — диалог <code>SelectROIDialog</code> → <code>NormalizeSpectrum()</code>; доступен только при привязанной конфигурации устройства — <code>MainForm.cs:2904</code> (логика <code>MainForm.cs:1507</code>)</li>
+<li><strong>Применить коррекцию мёртвого времени / Apply dead time correction</strong> — диалог <code>SelectDeviceDialog</code> → пересчёт <code>LiveTime</code> по мёртвому времени выбранного устройства (<code>Utils.LiveTime.Calculate</code>) — <code>MainForm.cs:2913</code></li>
+<li><strong>Автосохранение спектра / Autosave spectrum</strong> (флажок, CheckOnClick) — переключает <code>activeDocument.AutoSave</code>; при включении сразу сохраняет документ — <code>MainForm.cs:1675</code></li>
+<li>─────</li>
+<li><strong>Начало измерения / &amp;Start Measurement</strong> — <code>Ctrl+M</code> — <code>dcControlPanel.StartMeasurement()</code> — <code>MainForm.cs:3038</code></li>
+<li><strong>Остановить измерение / S&amp;top Measurement</strong> — <code>Ctrl+P</code> — <code>dcControlPanel.StopMeasurement()</code> — <code>MainForm.cs:3044</code></li>
+<li><strong>Очистить спектр / &amp;Clear Spectrum</strong> — <code>dcControlPanel.ClearMeasurementResult()</code> — <code>MainForm.cs:3050</code></li>
+</ul>
+<h3>Вид / &amp;View (<code>viewTToolStripMenuItem</code>)</h3>
+<p>Первые девять пунктов показывают докируемые панели (см. раздел «Панели DockContent»).</p>
+<ul>
+<li><strong>Управление измерением / Measurement &amp;Control</strong> — показывает <code>DCControlPanel</code> — <code>MainForm.cs:758</code></li>
+<li><strong>Информация об образце / &amp;Sample Information</strong> — показывает <code>DCSampleInfoView</code> — <code>MainForm.cs:802</code> (логика <code>MainForm.cs:788</code>)</li>
+<li><strong>Список спектров / Spectrum &amp;List</strong> — показывает <code>DCSpectrumListView</code> — <code>MainForm.cs:808</code></li>
+<li><strong>Калибровка энергии / &amp;Energy Calibration</strong> — снимает флаг активной калибровки с прочих документов и показывает <code>DCEnergyCalibrationView</code> — <code>MainForm.cs:832</code> (обработчик исторически называется <code>toolStripMenuItem4_Click</code>)</li>
+<li><strong>Обнаружение пиков / Peak &amp;Detection</strong> — показывает <code>DCPeakDetectionView</code> — <code>MainForm.cs:822</code></li>
+<li><strong>&amp;Монитор импульсов / &amp;Pulse Monitor</strong> — показывает <code>DCPulseView</code> и подключает его к <code>PulseDetector</code> активного документа — <code>MainForm.cs:772</code></li>
+<li><strong>Скорость счёта / Counts R&amp;ate</strong> — показывает <code>DCCountRateView</code> + обновляет скорость счёта и статус детектора — <code>MainForm.cs:885</code> (обработчик <code>toolStripMenuItem5_Click</code>)</li>
+<li><strong>Калибровка по FWHM / FWHM Calibration</strong> — показывает <code>DCFwhmCalibrationView</code> — <code>MainForm.cs:670</code> (логика <code>MainForm.cs:661</code>)</li>
+<li><strong>Результат измерений / Measurement &amp;Result</strong> — создаёт новый экземпляр <code>DCResultView</code> (не более 4 одновременно) — <code>MainForm.cs:897</code></li>
+<li>─────</li>
+<li><strong>Расположение / Layout</strong> (<code>toolStripMenuItem7</code>, подменю; галка на текущем режиме — <code>MainForm.cs:3145</code>):</li>
+<li><strong>Пользовательский режим / User Mode</strong> — сохраняет текущую раскладку в XML, переключает <code>LayoutMode.UserMode</code>, пересоздаёт панели (<code>InitializeToolViews</code>) и грузит сохранённую раскладку — <code>MainForm.cs:3173</code></li>
+<li><strong>Экспертный режим / Expert Mode</strong> — то же для <code>LayoutMode.ExpertMode</code> (файл <code>ExpertMode.xml</code> в каталоге раскладок) — <code>MainForm.cs:3201</code></li>
+<li>─────</li>
+<li><strong>Язык / &amp;Language</strong> (подменю; галка на текущем — <code>MainForm.cs:3123</code>; каждый пункт просит перезапуск):</li>
+<li><strong>(OS Default)</strong> (RU-ключа нет) — <code>GlobalConfig.Language = "OS"</code> — <code>MainForm.cs:3099</code></li>
+<li><strong>English</strong> (RU-ключа нет) — <code>Language = ""</code> (нейтральная локаль) — <code>MainForm.cs:3107</code></li>
+<li><strong>Russian</strong> (RU-ключа нет; имя пункта <code>jaJPToolStripMenuItem</code> — наследие японской локали оригинала) — <code>Language = "ru-RU"</code> — <code>MainForm.cs:3115</code></li>
+</ul>
+<h3>Инструменты / &amp;Tool (<code>toolsTToolStripMenuItem1</code>)</h3>
+<ul>
+<li><strong>Конфигурация устройства... / Edit &amp;Device Configurations...</strong> — <code>ShowDeviceConfigForm(null)</code>: окно конфигураций устройств — <code>MainForm.cs:914</code></li>
+<li><strong>Редактировать конфигурации &amp;ROI... / Edit &amp;ROI Configurations...</strong> — <code>ShowROIConfigForm(null)</code>: окно конфигураций ROI — <code>MainForm.cs:1177</code> (логика <code>MainForm.cs:1183</code>)</li>
+<li><strong>Редактировать библиотеку изотопов... / Edit &amp;Nuclide Definitions...</strong> — <code>ShowNuclideDefinitionForm()</code>: окно <code>NuclideDefinitionForm</code> — <code>MainForm.cs:1210</code> (логика <code>MainForm.cs:1250</code>)</li>
+<li><strong>Редактировать наборы изотопов... / Edit Nuclide Sets...</strong> — модальный <code>NuclideSetForm</code> — <code>MainForm.cs:1215</code> (логика <code>MainForm.cs:1265</code>)</li>
+<li><strong>Конструктор ROI и наборов нуклидов... / ROI and nuclide set builder...</strong> — <code>ShowRoiWizardForm()</code>: докируемая панель <code>RoiWizard.RoiWizardForm</code> (один экземпляр, HideOnClose; первый показ — плавающим окном по центру; разрешение детектора берётся из FWHM-калибровки активного спектра) — <code>MainForm.cs:1271</code> (логика <code>MainForm.cs:1288-1384</code>) ← <strong>добавлено веткой roi-wizard</strong></li>
+<li><strong>База изотопов... / Isotope base...</strong> — <code>ShowNucBaseView()</code>: отдельное окно <code>NucBase.NucBase</code> (не док-панель) — <code>MainForm.cs:1225</code> (логика <code>MainForm.cs:1230</code>)</li>
+<li><strong>Открыть папку конфигурации приложения в Windows Explorer... / Open config dir in Explorer...</strong> — <code>Process.Start("explorer.exe", userDirectoryConfig)</code> — <code>MainForm.cs:1220</code></li>
+<li>─────</li>
+<li><strong>&amp;Настройки / &amp;Preferences</strong> — окно <code>GlobalConfigForm</code> (глобальные настройки приложения) — <code>MainForm.cs:2648</code></li>
+</ul>
+<h3>Помощь / &amp;Help (<code>helpHToolStripMenuItem</code>)</h3>
+<ul>
+<li><strong>&amp;Инструкция / &amp;Manual</strong> — открывает <code>https://t.me/software_kbradar</code> в браузере — <code>MainForm.cs:2865</code></li>
+<li>─────</li>
+<li><strong>&amp;Проверить обновление... / &amp;Check for updates...</strong> — ClickOnce: <code>ApplicationDeployment.CheckForDetailedUpdate()</code>, при наличии — <code>Update()</code> + предложение перезапуска — <code>MainForm.cs:1795</code></li>
+<li><strong>&amp;О BQMoni... / &amp;About...</strong> — модальный <code>AboutForm</code> — <code>MainForm.cs:1787</code></li>
+</ul>
+<h3>Сводка горячих клавиш главного меню</h3>
+<table>
+<thead>
+<tr>
+<th>Клавиши</th>
+<th>Пункт</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+N</td>
+<td>Файл → Новый</td>
+</tr>
+<tr>
+<td>Ctrl+O</td>
+<td>Файл → Открыть</td>
+</tr>
+<tr>
+<td>Ctrl+S</td>
+<td>Файл → Сохранить</td>
+</tr>
+<tr>
+<td>Ctrl+W</td>
+<td>Файл → Закрыть</td>
+</tr>
+<tr>
+<td>Ctrl+M</td>
+<td>Спектр → Начало измерения</td>
+</tr>
+<tr>
+<td>Ctrl+P</td>
+<td>Спектр → Остановить измерение</td>
+</tr>
+</tbody>
+</table>
+<p>Других <code>ShortcutKeys</code> в <code>MainForm.Designer.cs</code> нет.</p>
+<hr />
+<h2>2. Тулбары (окно спектра DocEnergySpectrum)</h2>
+<p>У MainForm тулбара нет. Каждое окно спектра несёт два ToolStrip в нижней панели
+(<code>DocEnergySpectrum.Designer.cs:132,382</code>). Split-кнопки: клик по кнопке циклически переключает режим,
+стрелка раскрывает список. Обработчики — в <code>DocEnergySpectrum.cs</code>.</p>
+<p><strong>toolStrip1</strong> (<code>Ось Y:</code> … <code>Ось X:</code>):
+- <strong>Вертикальная единица</strong> (<code>toolStripSplitButton1</code>): Имп. / Counts (<code>DocEnergySpectrum.cs:894</code>), Имп. в сек. (CPS) (<code>:886</code>)
+- <strong>Вертикальный масштаб</strong> (<code>toolStripSplitButton2</code>): Линейный Y (<code>:980</code>), Степень Y / Power Scale (<code>:971</code>), Логарифм. Y (<code>:963</code>)
+- <strong>Поле степени</strong> (<code>toolStripNumericUpdown</code>) — степень корня POW; клавиша <code>e</code> вводит константу Эйлера (подсказка ресурса)
+- <strong>Автомасштаб</strong> (<code>toolStripSplitButton5</code>): Без авто масштабирования (<code>:1082</code>), Авто масштаб (<code>:1066</code>), Авто масштаб по фону (<code>:1074</code>)
+- <strong>Горизонтальная единица</strong> (<code>toolStripSplitButton4</code>): Канал (<code>:1188</code>), Энергия (keV) (<code>:1180</code>)
+- <strong>Увеличение масштаба</strong> (<code>toolStripButton2</code>) — <code>view.ZoominSelectedRegion()</code> — <code>:1354</code>
+- <strong>Показать все каналы</strong> (<code>toolStripButton1</code>) — <code>view.FitHorizontalScale()</code> — <code>:1337</code>
+- <strong>Масштаб 1:1</strong> (<code>toolStripButton3</code>) — <code>view.SetScale11()</code> — <code>:1342</code>
+- <strong>Поле масштаба X</strong> (<code>toolStripNumUpDownScale</code>) — изменение масштаба по оси X
+- <strong>Калибровка по энергиям</strong> (<code>toolStripSplitButton10</code>): Включить (<code>:1289</code>) / Выключить (<code>:1296</code>) инструмент калибровки (кнопка — переключатель, <code>:1263</code>)</p>
+<p><strong>toolStrip2</strong> (<code>Просмотр:</code> … <code>Изменить:</code>):
+- <strong>Режим фона</strong> (<code>toolStripSplitButtonBgMode</code>, кнопка циклит <code>:706</code>): Показать фоновый спектр (<code>:774</code>), Скрыть фоновый спектр (<code>:784</code>), Показать спектр за вычетом фона (<code>:793</code>), Показать континуум с пиками (<code>:802</code>), Показать нормализованный по эффективности спектр (<code>:811</code>)
+- <strong>Режим отрисовки</strong> (<code>toolStripSplitButton8</code>): Сглаживание / Antialias (<code>:849</code>), Обычное отображение (<code>:857</code>)
+- <strong>Тип графика</strong> (<code>toolStripSplitButton3</code>): Столбцы (<code>:1026</code>), Линии (<code>:1018</code>)
+- <strong>Сглаживание</strong> (<code>toolStripSplitButton6</code>): Нет (<code>:1124</code>), Скользящее среднее (<code>:1133</code>), Скользящее среднее с весом (<code>:1142</code>)
+- <strong>Обнаруженные пики</strong> (<code>toolStripSplitButton9</code>): Показать (<code>:1241</code>, включает детекцию пиков), Скрыть (<code>:1252</code>, выключает)
+- <strong>Снять скрин спектра в файл</strong> (<code>toolStripScreenShotButton</code>) — <code>view.takeScreenshot()</code> — <code>:1383</code>
+- <strong>Сохранить текущий документ</strong> (<code>toolStripSaveButton</code>) — <code>:1416</code>
+- <strong>Перезагрузить фон из файла</strong> (<code>toolStripRefreshBgButton</code>) — при пустом пути к фону сначала диалог выбора — <code>:1388</code>
+- <strong>Отделить фон от спектра</strong> (<code>toolStripSplitButton</code>) — <code>DocumentManager.SplitDocEnergySpectrum()</code>: документ разбивается на список «спектр + фон» — <code>:1428</code></p>
+<hr />
+<h2>3. Контекстные меню</h2>
+<p>Всего в проекте пять <code>ContextMenuStrip</code> (по grep): <code>DocEnergySpectrum</code>, <code>DCPeakDetectionView</code>, <code>ToolWindow</code>,
+<code>Utils\CalibrationGraph</code>, <code>Utils\FWHMCalibrationGraph</code>. У списка спектров (<code>DCSpectrumListView</code>) и таблицы
+результатов (<code>DCResultView</code>) контекстных меню нет — там кнопки (Новый/Удалить/Импорт/Экспорт и «Ред. ROI...»).</p>
+<h3>3.1 Спектр — правый клик по окну DocEnergySpectrum (<code>contextMenuStrip1</code>, <code>DocEnergySpectrum.Designer.cs:599</code>)</h3>
+<ul>
+<li><strong>Увеличить масштаб (&amp;M) / Increase selection (&amp;M)</strong> — <code>view.ZoominSelectedRegion()</code> — <code>DocEnergySpectrum.cs:1360</code></li>
+<li><strong>Показать все каналы (&amp;A) / Show all channels (&amp;A)</strong> — <code>view.FitHorizontalScale()</code> — <code>DocEnergySpectrum.cs:1348</code></li>
+<li>─────</li>
+<li><strong>Конфигурация устройства (&amp;D) / Device configuration (&amp;D)</strong> (подменю):</li>
+<li><strong>Установить нижний порог спектра по курсору (&amp;L)</strong> — событие <code>SetLowerThreshold</code> → MainForm открывает <code>DeviceConfigForm</code> и пишет порог из позиции курсора в конфигурацию устройства — <code>DocEnergySpectrum.cs:1375</code> → <code>MainForm.cs:1993</code></li>
+<li><strong>Установить верхний порог спектра по курсору (&amp;H)</strong> — аналогично для верхнего порога — <code>DocEnergySpectrum.cs:1452</code> → <code>MainForm.cs:2005</code></li>
+<li><strong>Конфигурация ROI (&amp;R) / ROI Configuration (&amp;R)</strong> (подменю):</li>
+<li><strong>Создать ROI из выбранного диапазона (&amp;S)</strong> — событие <code>CreateNewROI</code> → MainForm открывает <code>ROIConfigForm</code> и создаёт определение ROI из границ выделения — <code>DocEnergySpectrum.cs:1366</code> → <code>MainForm.cs:1967</code></li>
+<li>─────</li>
+<li><strong>Сохранить (&amp;S) / Save (&amp;S)</strong> — событие <code>SaveDocument</code> — <code>DocEnergySpectrum.cs:517</code></li>
+<li><strong>Закрыть (&amp;C) / Close (&amp;C)</strong> — событие <code>CloseDocument</code> — <code>DocEnergySpectrum.cs:523</code></li>
+</ul>
+<h3>3.2 Таблица обнаруженных пиков — DCPeakDetectionView (<code>contextMenuStrip1</code>, <code>DCPeakDetectionView.Designer.cs:167</code>)</h3>
+<p>Оба пункта активны только при выделенных строках (<code>DCPeakDetectionView.cs:486</code>).
+- <strong>Добавить в калибровку / Add in calibration</strong> — для каждой выбранной строки берёт канал и энергию (минус ошибка) и зовёт <code>mainForm.addCalibration()</code> — <code>DCPeakDetectionView.cs:447</code>
+- <strong>Поиск в Базе Изотопов / Search Isotope Base</strong> — <code>mainForm.CallNucBaseSearch(энергия строки)</code>: открывает Базу изотопов с поиском по энергии — <code>DCPeakDetectionView.cs:480</code></p>
+<h3>3.3 График калибровки энергии — CalibrationGraph (внутри DCEnergyCalibrationView; <code>Utils\CalibrationGraph.Designer.cs:43</code>)</h3>
+<ul>
+<li><strong>Сохранить новые точки калибровки / Save new calibration points</strong> — записывает отредактированные точки в <code>ActiveResultData.CalibrationPoints</code> — <code>Utils\CalibrationGraph.cs:360</code></li>
+<li><strong>Отменить изменения / Reset modifications</strong> — откат точек и полинома к исходным — <code>Utils\CalibrationGraph.cs:367</code></li>
+</ul>
+<h3>3.4 График FWHM-калибровки — FWHMCalibrationGraph (внутри DCFwhmCalibrationView; <code>Utils\FWHMCalibrationGraph.Designer.cs</code>)</h3>
+<ul>
+<li><strong>Сохранить новые точки калибровки</strong> — пишет пики в <code>ActiveResultData.FwhmCalibration.CalibrationPeaks</code> — <code>Utils\FWHMCalibrationGraph.cs:381</code></li>
+<li><strong>Отменить изменения</strong> — откат — <code>Utils\FWHMCalibrationGraph.cs:389</code></li>
+</ul>
+<h3>3.5 ToolWindow (базовый класс панелей) — мёртвое меню</h3>
+<p><code>ToolWindow.Designer.cs:30</code> создаёт <code>contextMenuStrip1</code> с пунктами <strong>Option&amp;1 / Option&amp;2 / Option&amp;3</strong>,
+но меню никому не присвоено (<code>ContextMenuStrip</code>/<code>TabPageContextMenuStrip</code> не назначаются) и обработчиков Click нет —
+наследие примера DockPanel Suite, в интерфейсе не появляется.</p>
+<hr />
+<h2>4. Панели DockContent</h2>
+<p>Все инструментальные панели — наследники <code>ToolWindow : DockContent</code> (WeifenLuo DockPanel Suite);
+создаются при старте в <code>MainForm.InitializeToolViews()</code> — <code>MainForm.cs:252</code> — и восстанавливаются из XML-раскладки
+(<code>ExpertMode.xml</code>, режимы «Пользовательский/Экспертный»). Повторное открытие — из меню <strong>Вид</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Панель</th>
+<th>Заголовок RU / EN</th>
+<th>Как открывается</th>
+<th>Примечание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DCControlPanel</code></td>
+<td>Управление измерением / Measurement Control</td>
+<td>Вид → Управление измерением (<code>MainForm.cs:758</code>)</td>
+<td>запуск/остановка/очистка измерения, preset time, выбор устройства и ROI</td>
+</tr>
+<tr>
+<td><code>DCSampleInfoView</code></td>
+<td>Информация об образце / Sample Information</td>
+<td>Вид → Информация об образце (<code>:802</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>DCSpectrumListView</code></td>
+<td>Список спектров / Spectrum List</td>
+<td>Вид → Список спектров (<code>:808</code>)</td>
+<td>кнопки Новый/Удалить/Импорт/Экспорт</td>
+</tr>
+<tr>
+<td><code>DCEnergyCalibrationView</code></td>
+<td>Калибр. Энергии / Energy Calibration</td>
+<td>Вид → Калибровка энергии (<code>:832</code>)</td>
+<td>содержит график <code>CalibrationGraph</code> (контекстное меню 3.3)</td>
+</tr>
+<tr>
+<td><code>DCFwhmCalibrationView</code></td>
+<td>FWHM Калибровка / FWHM Calibration</td>
+<td>Вид → Калибровка по FWHM (<code>:670</code>)</td>
+<td>содержит <code>FWHMCalibrationGraph</code> (меню 3.4)</td>
+</tr>
+<tr>
+<td><code>DCPeakDetectionView</code></td>
+<td>Обнаружение пиков / Peak Detection</td>
+<td>Вид → Обнаружение пиков (<code>:822</code>)</td>
+<td>таблица пиков с контекстным меню 3.2; выбор набора нуклидов, деконволюция</td>
+</tr>
+<tr>
+<td><code>DCPulseView</code></td>
+<td>Форма импульса / Pulse Shape</td>
+<td>Вид → Монитор импульсов (<code>:772</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>DCCountRateView</code></td>
+<td>Скорость счёта / Counts Rate</td>
+<td>Вид → Скорость счёта (<code>:885</code>)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>DCResultView</code></td>
+<td>Результат измерений / Measurement Result</td>
+<td>Вид → Результат измерений (<code>:897</code>)</td>
+<td>до 4 экземпляров; кнопка «Ред. ROI...»</td>
+</tr>
+<tr>
+<td><code>DocEnergySpectrum</code></td>
+<td>имя файла спектра</td>
+<td>Файл → Новый/Открыть, импорт, drag&amp;drop</td>
+<td>документ (DockAreas.Document), контекстное меню 3.1 и два тулбара</td>
+</tr>
+<tr>
+<td><code>RoiWizard.RoiWizardForm</code></td>
+<td>Конструктор ROI и наборов нуклидов / ROI and nuclide set builder</td>
+<td>Инструменты → Конструктор ROI... (<code>:1271</code>)</td>
+<td><strong>roi-wizard</strong>; DockContent с HideOnClose, один экземпляр, вкладки «1 · Изотопы», «2 · Линии», «3 · Оформление и создание»; восстанавливается из раскладки через <code>GetContentFromPersistString</code></td>
+</tr>
+</tbody>
+</table>
+<p>Не DockContent (обычные окна): <code>NucBase.NucBase</code> (База изотопов), <code>ROIConfigForm</code>, <code>NuclideDefinitionForm</code>,
+<code>NuclideSetForm</code>, <code>DeviceConfigForm</code>, <code>GlobalConfigForm</code>, <code>AboutForm</code>, <code>EffCalcMCDialog</code>, диалоги выбора.</p>
+<hr />
+<h2>5. Пункты ветки roi-wizard</h2>
+<ol>
+<li><strong>Инструменты → Конструктор ROI и наборов нуклидов...</strong> (<code>RoiWizardToolStripMenuItem</code>, <code>MainForm.Designer.cs:593-597</code>) — обработчик <code>MainForm.cs:1271</code>, показ панели <code>MainForm.cs:1312</code>, ленивая инициализация с проверкой доступности базы нуклидов <code>MainForm.cs:1288</code>, расчёт разрешения детектора <code>MainForm.cs:1351</code>.</li>
+<li><strong>Файл → Импорт → LSRM EffCalcMC.txt -&gt; ROI</strong> (<code>EffCalcMCFileToolStripMenuItem</code>, <code>MainForm.Designer.cs:225-229</code>) — обработчик <code>MainForm.cs:2529-2554</code>: импорт кривой эффективности EffCalcMC в конфигурацию ROI.</li>
+</ol>
+<hr />
+<h2>6. Не выяснено / тёмные места</h2>
+<ul>
+<li><strong>Осиротевшие RU-ключи в <code>MainForm.ru.resx</code></strong>: <code>toolStripMenuItem1</code> («&amp;Экспорт спектра в файл»), <code>toolStripMenuItem2</code> («Отчёт...»), <code>toolStripMenuItem3</code> («Статус измерений»), <code>toolStripMenuItem4</code> («&amp;Калибровка энергии»), <code>toolStripMenuItem5</code> («Скорость С&amp;чёта») — пунктов с такими именами в <code>MainForm.Designer.cs</code> нет (пункты были переименованы или удалены; «Отчёт...» и «Статус измерений» в текущем меню отсутствуют вовсе). Следствие: пункт «Export Spectrum to File» в русской локали отображается по-английски.</li>
+<li><strong>Пункты без русских подписей</strong> (fallback на EN в русской локали): LSRM EffCalcMC.txt -&gt; ROI, SpectraLine GBS, (OS Default), English, Russian, Export Spectrum to File.</li>
+<li><strong><code>jaJPToolStripMenuItem</code></strong> — имя от японской локали оригинального BecquerelMonitor; фактический текст «Russian», ставит <code>ru-RU</code>.</li>
+<li><strong>Файл → Экспорт → для FWHM</strong> — числа 530/627/780 кэВ и кодировка вывода 932 (Shift-JIS) зашиты в код (<code>MainForm.cs:3056-3085</code>); назначение — экспорт окрестности пика 662 кэВ для внешней оценки FWHM, но в меню это никак не пояснено.</li>
+<li><strong>ToolWindow.contextMenuStrip1 (Option1/2/3)</strong> — заготовка без обработчиков, нигде не привязана.</li>
+<li>Вкладка мастера в этой ветке называется «2 · Линии» (<code>RoiWizard\RoiWizardStrings.ru.resx</code>); переименование «2 · Цепочки» существует только в веб-версии конструктора, в WinForms-порт не переносилось.</li>
+</ul>
+</body>
+</html>
