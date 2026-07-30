@@ -26,7 +26,6 @@ blockquote { border-left: 4px solid #d9a62e; background: #fdf6e3; margin: 16px 0
 li { margin-bottom: 4px; }
 p, li { text-align: justify; hyphens: auto; }
 hr { border: none; border-top: 1px solid #ccc; margin: 28px 0; }
-img { max-width: 100%; }
 .meta { color: #666; font-size: 13px; margin-bottom: 24px; }
 </style>
 </head>
@@ -200,8 +199,7 @@ read-only, только чтение кода.</p>
 <li><code>BecquerelMonitor/GlobalConfigInfo.cs:6</code> — окна, язык, <code>MeasurementConfig</code>
   (DetectionLevel, ErrorLevel, ShowValuesForNDResult), <code>ChartViewConfig</code>, автосохранение,
   <strong><code>EasyControlConfig</code></strong> (<code>GlobalConfigInfo.cs:328</code>, создаётся :483).</li>
-<li><strong>EasyControlConfig — третий держатель пары Guid-ссылок</strong> (дополнение по аудиту
-  перекрёстного аудита 30.07): <code>EasyControlConfig.cs:27</code> <code>DeviceConfigReference</code>,
+<li><strong>EasyControlConfig — третий держатель пары Guid-ссылок</strong> (дополнение по перекрёстному аудиту 30.07): <code>EasyControlConfig.cs:27</code> <code>DeviceConfigReference</code>,
   <code>:58</code> <code>ROIConfigReference</code>. Писатель — <code>GlobalConfigForm.cs:234, 239</code>; читатель —
   <code>MainForm.cs:2668-2681</code>. См. строку 19 матрицы: единственный НЕтихий путь резолва.</li>
 <li>Файл <code>%AppData%\BecqMoni\config\BecquerelMonitor.xml</code>
@@ -309,7 +307,7 @@ read-only, только чтение кода.</p>
 <td>Активность по выделению (без ROI)</td>
 <td>on-the-fly из кривой + Intencity пика</td>
 <td>—</td>
-<td><code>EnergySpectrumView.cs:703-740</code>: цепочка из шести <code>if</code> (14 атомарных условий), вычисление :738-762; ключевые — ровно один пик в выделении, <code>Nuclide.Intencity &gt; 0</code>, <code>roiConfig.HasEfficiency</code> и обязательный фоновый спектр (<code>bgTime &gt; 0</code> :709 — без назначенного фона активность по выделению не появляется никогда) → тот же <code>K = (1/ε)/(I/100)</code> :742</td>
+<td><code>EnergySpectrumView.cs:703-740</code>: 7 вложенных <code>if</code> / 16 атомарных условий в диапазоне (последовательная цепочка, без учёта фильтра внутри foreach на :730 — 6 if / 14 условий), вычисление :738-762; ключевые — ровно один пик в выделении, <code>Nuclide.Intencity &gt; 0</code>, <code>roiConfig.HasEfficiency</code> и обязательный фоновый спектр (<code>bgTime &gt; 0</code> :709 — без назначенного фона активность по выделению не появляется никогда) → тот же <code>K = (1/ε)/(I/100)</code> :742</td>
 </tr>
 <tr>
 <td>14</td>
@@ -449,7 +447,7 @@ read-only, только чтение кода.</p>
    где ε — интерполяция <code>ROIAriphmetics.CalculateEfficiency</code> по <code>ROIEfficiency</code> конфига
    (<code>Utils/ROIAriphmetics.cs:26-42</code>), I — из библиотеки нуклидов. Либо вручную
    (<code>ROIConfigForm.cs:888</code>). <strong>После записи K живёт своей жизнью</strong> — смена кривой или
-   интенсивности в библиотеке на него не влияет. Оговорка (аудит перекрёстного аудита 30.07):
+   интенсивности в библиотеке на него не влияет. Оговорка (перекрёстный аудит 30.07):
    перед записью два guard'а — <code>HasEfficiency &amp;&amp; Intencity &gt; 0</code> (:951) и
    <code>effData != null &amp;&amp; Efficiency &gt; 0</code> (:955); при непрохождении K остаётся
    дефолтным 0 (<code>ROIDefinitionData.cs:329</code> без инициализатора), и <code>Translate</code> :48
@@ -462,7 +460,7 @@ read-only, только чтение кода.</p>
 <li>MDA внутри CalculateROI — форма Карри :426-435.</li>
 <li>Периодичность: <code>MainForm.ShowMeasurementResult</code> :612-631 (по таймеру) → DCResultView.</li>
 </ol>
-<p>Альтернативная ветка «по выделению»: <code>EnergySpectrumView.cs:736-763</code> — ε и I берутся
+<p>Альтернативная ветка «по выделению»: цепочка условий <code>EnergySpectrumView.cs:703-740</code> (шесть if, 16 атомарных условий в диапазоне — из них последовательных 6 if / 14, плюс фильтр числа пиков внутри foreach на :730), вычисление :738-762 — ε и I берутся
 на лету (кривая из <code>ResultData.ROIConfig</code>, I из <code>Peak.Nuclide.Intencity</code>), K не
 замораживается.</p>
 <h3>4в. Идентификация: библиотека → LibraryPeakFitter → вердикты</h3>
@@ -531,7 +529,7 @@ read-only, только чтение кода.</p>
    штрихов (<code>EnergySpectrumView.ShowROIReferencePeak</code> :2810-2833; условие :2812 —
    <code>Enabled &amp;&amp; (Intencity &lt; 100.0 || Intencity &gt; 0.0)</code>: <code>Enabled</code> фильтрует,
    тавтологична только скобка по Intencity — она истинна для любого числа,
-   вероятно задумывалось <code>&amp;&amp;</code>; поправка по результатам перекрёстного аудита 30.07 —
+   вероятно задумывалось <code>&amp;&amp;</code>; поправка по перекрёстному аудиту 30.07 —
    ранняя редакция отсекала <code>Enabled</code> из цитаты и делала неверный вывод
    «фильтр не фильтрует ничего»).</li>
 <li><strong>FormatVersion "120920"</strong> — магическая строка-константа в трёх сущностях

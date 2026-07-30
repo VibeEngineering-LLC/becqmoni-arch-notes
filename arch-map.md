@@ -160,8 +160,7 @@ read-only, только чтение кода.
 - `BecquerelMonitor/GlobalConfigInfo.cs:6` — окна, язык, `MeasurementConfig`
   (DetectionLevel, ErrorLevel, ShowValuesForNDResult), `ChartViewConfig`, автосохранение,
   **`EasyControlConfig`** (`GlobalConfigInfo.cs:328`, создаётся :483).
-- **EasyControlConfig — третий держатель пары Guid-ссылок** (дополнение по аудиту
-  перекрёстного аудита 30.07): `EasyControlConfig.cs:27` `DeviceConfigReference`,
+- **EasyControlConfig — третий держатель пары Guid-ссылок** (дополнение по перекрёстному аудиту 30.07): `EasyControlConfig.cs:27` `DeviceConfigReference`,
   `:58` `ROIConfigReference`. Писатель — `GlobalConfigForm.cs:234, 239`; читатель —
   `MainForm.cs:2668-2681`. См. строку 19 матрицы: единственный НЕтихий путь резолва.
 - Файл `%AppData%\BecqMoni\config\BecquerelMonitor.xml`
@@ -185,7 +184,7 @@ read-only, только чтение кода.
 | 10 | Фиттер → кривая эффективности | передача `ROIConfigData` параметром; гейт по Guid-равенству | `DCPeakDetectionView.cs:217` (снапшот: `ROIConfig = BoundEfficiencyConfig(...)` — глубокая копия) | `PeakDetector.AppendLibraryPeaks` :113-128 → `LibraryPeakFitter.Fit(..., resultData.ROIConfig)`; `EfficiencyShape.From` :313-329 → `ROIAriphmetics.CalculateEfficiency` (`Utils/ROIAriphmetics.cs:26-42`, монотонный кубический сплайн :175-176); ЧЕТВЁРТЫЙ читатель кривой — нормировка спектра `Utils/SpectrumAriphmetics.cs:304-360` (:330, делит каналы на ε(E), обнуляет вне узлов; вызовы `MainForm.cs:1531,1536`, `EnergySpectrumView.cs:1238,1245,1727`) — кривая влияет и на отображаемый спектр |
 | 11 | Дозовая калибровка: форма ↔ конфиг | список объектов ↔ строки таблицы | загрузка `DeviceConfigForm.cs:530-540`; сохранение :852-861 (таблица → новый список точек) | `MainForm.ShowDoseRate` :634-647 → `DoseRateManager.Calculate` :20-81 |
 | 12 | ROI-область → коэффициент активности | число `BecquerelCoefficient`, **вычисляется при создании области** и замораживается | `ROIConfigForm.button9_Click` :951-962: `K = (1/ε(E)) / (I/100)`, ошибка = K·(δε/100) :957-961; вручную — :888-899 | `MeasurementResultManager.Translate` :44-56: `Bq = cps·K`, ошибка по квадратуре :52 |
-| 13 | Активность по выделению (без ROI) | on-the-fly из кривой + Intencity пика | — | `EnergySpectrumView.cs:703-740`: цепочка из шести `if` (14 атомарных условий), вычисление :738-762; ключевые — ровно один пик в выделении, `Nuclide.Intencity > 0`, `roiConfig.HasEfficiency` и обязательный фоновый спектр (`bgTime > 0` :709 — без назначенного фона активность по выделению не появляется никогда) → тот же `K = (1/ε)/(I/100)` :742 |
+| 13 | Активность по выделению (без ROI) | on-the-fly из кривой + Intencity пика | — | `EnergySpectrumView.cs:703-740`: 7 вложенных `if` / 16 атомарных условий в диапазоне (последовательная цепочка, без учёта фильтра внутри foreach на :730 — 6 if / 14 условий), вычисление :738-762; ключевые — ровно один пик в выделении, `Nuclide.Intencity > 0`, `roiConfig.HasEfficiency` и обязательный фоновый спектр (`bgTime > 0` :709 — без назначенного фона активность по выделению не появляется никогда) → тот же `K = (1/ε)/(I/100)` :742 |
 | 14 | Панель управления → конфиги | **индекс combobox = индекс списка менеджера** | выбор пользователя | `DCControlPanel.cs:451` (`DeviceConfigList[SelectedIndex]`), :479 (`ROIConfigList[SelectedIndex]`); заполнение имён :76-93, обратный поиск по Guid для подсветки :284-312 |
 | 15 | SelectROIDialog → выбор кривой | **строковое имя** из combobox → поиск `Name ==` | сам диалог — писатель `EfficencyROIGuid` (:111-112, галочка «привязать») | `SelectROIDialog.cs:103-107` (коллизия имён отдаёт первый попавшийся; комбобокс наполнен только HasEfficiency-конфигами :70, а поиск по полному списку — одноимённые вернут конфиг БЕЗ кривой); потребитель результата — `MainForm.cs:1517-1531` |
 | 16 | RoiWizard → библиотека и ROI | объекты через менеджеры (файлы не пишет сам) | `RoiWizardForm.cs:1949-1973` (`CreateConfig`/`SaveConfig`), :2067-2074 (`MergeIntoLibrary` + `SaveDefinitionFile`) | далее штатные читатели менеджеров |
@@ -289,7 +288,7 @@ read-only, только чтение кода.
    где ε — интерполяция `ROIAriphmetics.CalculateEfficiency` по `ROIEfficiency` конфига
    (`Utils/ROIAriphmetics.cs:26-42`), I — из библиотеки нуклидов. Либо вручную
    (`ROIConfigForm.cs:888`). **После записи K живёт своей жизнью** — смена кривой или
-   интенсивности в библиотеке на него не влияет. Оговорка (аудит перекрёстного аудита 30.07):
+   интенсивности в библиотеке на него не влияет. Оговорка (перекрёстный аудит 30.07):
    перед записью два guard'а — `HasEfficiency && Intencity > 0` (:951) и
    `effData != null && Efficiency > 0` (:955); при непрохождении K остаётся
    дефолтным 0 (`ROIDefinitionData.cs:329` без инициализатора), и `Translate` :48
@@ -302,7 +301,7 @@ read-only, только чтение кода.
 5. MDA внутри CalculateROI — форма Карри :426-435.
 6. Периодичность: `MainForm.ShowMeasurementResult` :612-631 (по таймеру) → DCResultView.
 
-Альтернативная ветка «по выделению»: `EnergySpectrumView.cs:736-763` — ε и I берутся
+Альтернативная ветка «по выделению»: цепочка условий `EnergySpectrumView.cs:703-740` (шесть if, 16 атомарных условий в диапазоне — из них последовательных 6 if / 14, плюс фильтр числа пиков внутри foreach на :730), вычисление :738-762 — ε и I берутся
 на лету (кривая из `ResultData.ROIConfig`, I из `Peak.Nuclide.Intencity`), K не
 замораживается.
 
@@ -371,7 +370,7 @@ read-only, только чтение кода.
    штрихов (`EnergySpectrumView.ShowROIReferencePeak` :2810-2833; условие :2812 —
    `Enabled && (Intencity < 100.0 || Intencity > 0.0)`: `Enabled` фильтрует,
    тавтологична только скобка по Intencity — она истинна для любого числа,
-   вероятно задумывалось `&&`; поправка по результатам перекрёстного аудита 30.07 —
+   вероятно задумывалось `&&`; поправка по перекрёстному аудиту 30.07 —
    ранняя редакция отсекала `Enabled` из цитаты и делала неверный вывод
    «фильтр не фильтрует ничего»).
 3. **FormatVersion "120920"** — магическая строка-константа в трёх сущностях
