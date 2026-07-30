@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Конструктор ROI и наборов нуклидов для BecqMoni</title>
+<link rel="stylesheet" href="styles/host.css?v=20260725g" id="themeCss">
+<!-- тема поверх host.css; по умолчанию becqmoni, «?style=none» — голый host.css -->
+<script>(function(){var t=new URLSearchParams(location.search).get("style")||localStorage.getItem("roiStyle")||"becqmoni";if(t&&t!=="none"&&/^[\w.-]+$/.test(t))document.write('<link rel="stylesheet" href="styles/'+t+'.css?v=20260725g">');})();</script>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <h1>Конструктор ROI и наборов нуклидов — <span id="titleCfg">IAEA lines</span></h1>
+  <span class="spacer"></span>
+  <button id="helpBtn" title="Что делает инструмент и как им пользоваться">Справка</button>
+  <button id="langBtn">EN</button>
+</header>
+<!-- справка по инструменту: поверх окна, закрывается кликом мимо, крестиком и Esc -->
+<div class="modalback" id="helpBack" style="display:none">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modalhead"><b id="helpTitle">Справка: конструктор ROI и наборов нуклидов</b>
+      <span class="spacer" style="flex:1"></span><button id="helpClose">✕</button></div>
+    <div class="modalbody" id="helpText">
+      <p><b>Зачем.</b> Инструмент собирает два файла для BecqMoni из снимка ядерных данных
+      IAEA Live Chart (ENSDF): <b>ROI-конфигурацию</b> (маркеры и зоны на энергетической оси)
+      и <b>набор нуклидов</b> — именованный <code>NuclideSet</code>, который дописывается
+      в вашу библиотеку <code>NuclideDefinition.xml</code>. Страница автономна: данные лежат
+      снимком в <code>data/nuclides.js</code>, обращений в сеть нет.</p>
+
+      <p><b>Шаг 1 · Изотопы.</b> Три способа набрать источники: поиск по имени (или по коду
+      семейства), готовая группа — 8 семейств по ANSI N42.34 и 3 ряда распада, — и панель ХРИ
+      (характеристический рентген материалов защиты и детектора). У поиска и у группы одинаковые
+      три кнопки: <b>добавить</b> нуклид сам по себе, <b>+ линии семейства</b> (линии дочерних
+      идут под именем родителя, одной записью) и <b>+ цепочка</b> (дочерние отдельными нуклидами,
+      родитель в скобках имени). Скобки не косметика: по ним BecqMoni узнаёт цепочку и связывает
+      амплитуды линий. Пять готовых наборов под полем поиска дают рабочий пример в один клик.</p>
+
+      <p><b>Шаг 2 · Цепочки.</b> Справочник по рядам ЕРН в духе NUCLÉIDE-LARA (LNHB).
+      «Кто светит на этой энергии» — кандидаты в окне ±W кэВ, для членов рядов
+      интенсивность приведена к распаду корня (доли ветвлений и равновесие уже свёрнуты),
+      рядом контрольные линии кандидата в той же нормировке — по ним его подтверждают
+      или отбрасывают; кнопки добавляют нуклид или весь ряд в выбор. «Таблица эмиссий
+      ряда» — все γ и X ряда на 100 распадов корня, порог, сортировка, выгрузка CSV;
+      от набора не зависит и работает как самостоятельный справочник.</p>
+
+      <p><b>Шаг 3 · Линии.</b> <b>R</b> — паспортное разрешение детектора на 662 кэВ; из него
+      считается FWHM(E) = R·√(662·E)/100 (модель для сцинтилляторов). <b>Объединить близкие</b>
+      сливает линии, которые ваш детектор всё равно не разделит: порог <b>Sparrow 0,85·FWHM</b> —
+      физический предел разрешимости двух пиков, для ROI-маркеров; <b>якорный набор 0,25·FWHM</b> —
+      для выгрузки в библиотеку, потому что пары от 0,25 до 0,85 FWHM разбирает библиотечный фит,
+      и сливать их — обеднять набор. Фильтры (интенсивность, энергия, период полураспада)
+      управляют <b>выбором</b> линий, а галки типов — только видимостью. Ниже — расчёт вторичных
+      пиков (обратное рассеяние, комптон-край, вылеты 511 и 1022, суммирование, наложение)
+      и поиск близких линий по всей базе: «кто ещё светит рядом с этой энергией».</p>
+
+      <p><b>Шаг 4 · Оформление и экспорт.</b> Режим маркеров или зон, ширина зоны в процентах
+      от энергии либо через k·FWHM, цвета по цепочке или по нуклиду. <b>Скачать ROI .xml</b> даёт
+      файл для <code>%APPDATA%\BecqMoni\config\ROI\</code>. <b>Дописать в библиотеку</b> просит
+      ваш <code>NuclideDefinition.xml</code> и возвращает его копию с добавленным набором —
+      существующие нуклиды и наборы сохраняются, рядом скачивается бэкап оригинала.</p>
+
+      <p><b>Якорь.</b> Ровно одна линия набора помечается <code>IsAnchor=true</code>: найдя её
+      в спектре, BecqMoni сажает остальные линии на табличные позиции и подгоняет их амплитуды.
+      Без якоря библиотечный фит не запускается вовсе. Автовыбор берёт сильную и одинокую линию
+      (для Th-232 это 2614,5 кэВ, для U-238 — 609,3), но её можно назначить вручную.
+      Галка <b>полный набор</b> выгружает все линии выбранных нуклидов минуя фильтры: по прогонам
+      разработчика BecqMoni выигрыш даёт именно полная цепочка, а набор из одних сильных линий
+      фиту ничего не добавляет.</p>
+
+      <p><b>Перед сохранением</b> данные проверяются. Для ROI совпавшие энергии, нулевой выход
+      и перекрытие зон — замечания: сохранить можно. Для набора первые два — ошибки: две линии
+      на одной энергии вырождают подгонку амплитуд, а нулевая интенсивность выбрасывает линию
+      из связки по цепочке.</p>
+
+      <p><b>Границы применимости.</b> База — снимок, а не живой запрос к IAEA (API не отдаёт CORS);
+      обновляется скриптом <code>update_nuclides.py</code> или кнопкой в GitHub Actions.
+      Модель ширины пика — для сцинтилляторов; для HPGe она занижает ширину на низких энергиях.
+      Интенсивности ХРИ условные (Kα1 = 100) — это маркеры, не выходы. Вторичные пики расчётные.
+      Коэффициенты Бк/cps не заполняются: их задают в BecqMoni по кривой эффективности.
+      Инструмент неофициальный и частью BecqMoni не является.</p>
+
+      <p><b>Источники и стандарты.</b> В таблице — что именно взято и откуда.</p>
+      <table class="srctbl">
+      <thead><tr><th>Что взято</th><th>Откуда</th></tr></thead>
+      <tbody>
+      <tr><td>Энергии и интенсивности γ-линий, периоды полураспада, ветвления распада —
+        база <b>121 нуклида</b>, порог γ ≥ 0,05 %</td>
+        <td><a href="https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html" target="_blank"
+        rel="noopener">IAEA Live Chart of Nuclides</a>, оценённые данные
+        <a href="https://www.nndc.bnl.gov/ensdf/" target="_blank" rel="noopener">ENSDF</a>
+        (NNDC, Брукхейвенская национальная лаборатория). Снимок лежит в <code>data/nuclides.js</code>,
+        его дата — в подвале «об источниках данных»</td></tr>
+      <tr><td>Рентген, сопровождающий распад (K- и L-серии дочерних атомов), порог ≥ 0,5 %</td>
+        <td>тот же снимок IAEA/ENSDF, отдельная таблица линий</td></tr>
+      <tr><td>Энергии ХРИ <b>10 элементов</b> защиты и детектора (Fe, Cu, Cd, Sn, Te, I, Ba, La, W, Pb);
+        интенсивности условные, Kα1 = 100</td>
+        <td><a href="https://physics.nist.gov/PhysRefData/XrayTrans/Html/search.html" target="_blank"
+        rel="noopener">NIST X-ray Transition Energies Database</a>, свод Бердена</td></tr>
+      <tr><td>Коды семейств <b>NORM, MED, IND, SNM</b></td>
+        <td><a href="https://standards.ieee.org/standard/N42_34-2021.html" target="_blank"
+        rel="noopener">IEEE/ANSI N42.34-2021</a> — критерии для носимых идентификаторов радионуклидов
+        (RIID). Группы FISS, NAA, WASTE вне стандарта, заведены под задачи спектрометрии</td></tr>
+      <tr><td>Формулы вторичных пиков: BS = E/(1+2E/511), CE = E − BS, SE = E − 511,
+        DE = E − 1022, вылет K-рентгена иода <b>−28 кэВ</b></td>
+        <td>G. F. Knoll, <a href="https://www.wiley.com/en-us/Radiation+Detection+and+Measurement,+4th+Edition-p-9780470131480"
+        target="_blank" rel="noopener">Radiation Detection and Measurement</a> (Wiley), гл. 10:
+        комптоновский край — разд. II.B; пик обратного рассеяния (0,2–0,25 МэВ), пики вылета
+        и суммирование каскадов — разд. III; иодный вылет — рис. 10.10</td></tr>
+      <tr><td>Почему нужны поправки: край размыт разрешением, а пик ищется методом
+        <b>второй производной</b>, поэтому найденный центроид не совпадает с обрывом</td>
+        <td>Knoll, гл. 10, разд. II.B (влияние энергии связи электронов); G. Gilmore,
+        <a href="https://www.wiley.com/en-us/practical-gamma-ray-spectrometry-3rd-edition-p-9781119896081"
+        target="_blank" rel="noopener">Practical Gamma-ray Spectrometry</a> (Wiley),
+        разд. 9.2.3 — алгоритм Марискотти</td></tr>
+      <tr><td>Числа поправок: комптон-край <b>−0,8·FWHM</b>, обратное рассеяние <b>+10 кэВ</b>;
+        доли от родительской линии BS 8 %, CE 6 %, SE 6 %</td>
+        <td>измерения комплекса Gamma-1C (NaI(Tl) 63×63, защита Pb 50 мм
+        с вкладышем Cd/Cu): 9 нуклидов, 18 первичных линий, взята <b>31 запись из 41</b> —
+        остальные отброшены как наложения. Разбор — <code>docs/REFERENCES-secondary-peaks.md</code></td></tr>
+      <tr><td>Коэффициенты равновесия ряда: Tl-208 <b>×0,3594</b>, Po-212 ×0,6406, Th-227 ×0,9862,
+        Fr-223 ×0,0138, Tl-207 ×0,99724, Po-211 ×0,00276</td>
+        <td>ветвления на развилках рядов (Bi-212 β 64,06 % / α 35,94 %; Ac-227; Bi-211)
+        по данным ENSDF</td></tr>
+      <tr><td>Пороги слияния <b>0,85·FWHM</b> (предел Sparrow) и <b>0,25·FWHM</b> (якорный набор),
+        гейт значимости Fisher <b>z ≥ 4</b>, требование ровно одного <code>IsAnchor</code></td>
+        <td>исходники <a href="https://github.com/Am6er/BecqMoni" target="_blank"
+        rel="noopener">Am6er/BecqMoni</a>, файл <code>BecquerelMonitor/LibraryPeakFitter.cs</code></td></tr>
+      <tr><td>Форматы файлов: ROI <code>FormatVersion 120920</code>, структура
+        <code>NuclideDefinitionFile</code> (NuclideDefinitions + NuclideSets, привязка по guid)</td>
+        <td>те же исходники: <code>ROIConfigData.cs</code>, <code>ROIDefinitionData.cs</code>,
+        <code>NuclideDefinition.cs</code>, <code>NuclideSet.cs</code></td></tr>
+      </tbody></table>
+    </div>
+  </div>
+</div>
+<nav class="tabs" id="tabs">
+  <button data-tab="1" class="on">1 · Изотопы</button>
+  <button data-tab="2">2 · Цепочки</button>
+  <button data-tab="3">3 · Линии</button>
+  <button data-tab="4">4 · Оформление и экспорт</button>
+</nav>
+
+<!-- ═══════════ 1. ВЫБОР ИСТОЧНИКОВ ═══════════ -->
+<div class="tabbody on" data-body="1">
+  <div class="cols3">
+    <div class="gbox"><span class="lg">Поиск изотопа</span>
+      <div class="line">
+        <input type="text" id="nucSearch" placeholder="напр. Eu-152" style="flex:1; min-width:70px">
+        <button id="nucAdd" title="Только выбранный нуклид, его собственные линии">Добавить</button>
+        <button id="nucAddF" title="Все линии дочерних под именем выбранного нуклида — один изотоп в списке">+ семейство</button>
+        <button id="nucAddC" title="Дочерние отдельными нуклидами с пометкой родителя: «Tc-99m (Mo-99)»">+ цепочка</button>
+      </div>
+      <div class="nuclist" id="searchList"></div>
+      <p class="hint" id="searchHint">Ввод сужает список: по имени или по семейству. Клик по строке добавляет изотоп.</p>
+      <!-- полосы меню над закладками нет: пресеты живут на своём шаге, сводка базы — в подвале -->
+      <p class="hint presets" id="presetBar"></p>
+    </div>
+    <div class="gbox"><span class="lg">Группа</span>
+      <div class="row" style="position:relative">
+        <select id="famSel" style="flex:1 1 260px; min-width:0"></select>
+        <span id="famCtl" style="display:flex; gap:5px"></span>
+        <button id="famInfoBtn" title="Что означают коды семейств">i</button>
+        <p class="hint infoPop" id="famInfoBox" style="display:none"></p>
+      </div>
+      <div class="nuclist" id="famList"></div>
+      <p class="hint" id="chainHint">Член цепочки без γ/X-линий выше порога базы показан серым.</p>
+    </div>
+    <div class="gbox"><span class="lg">ХРИ — элементы</span>
+      <div class="nuclist" id="xrfList" style="margin-top:2px"></div>
+      <p class="hint" id="xrfHint">Kα/Kβ (+L для тяжёлых). Интенсивности относительные (Kα1 = 100) — только маркеры.</p>
+    </div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; margin-top:8px">
+    <b style="white-space:nowrap">Выбрано:</b>
+    <div class="chipbar" id="selBar" style="flex:1; margin-top:0"></div>
+    <button id="clearAll" style="flex-shrink:0">очистить всё</button>
+  </div>
+</div>
+
+<!-- ═══════════ 2. ЦЕПОЧКИ ═══════════ -->
+<div class="tabbody" data-body="2">
+  <div class="gbox"><span class="lg">Кто светит на этой энергии</span>
+    <div class="line">
+      <label for="laraE">E =</label>
+      <input type="number" id="laraE" min="1" step="0.1" style="width:74px"> <span>кэВ</span>
+      <label for="laraW">±</label>
+      <input type="number" id="laraW" value="10" min="0.5" step="0.5" style="width:56px"> <span>кэВ</span>
+      <label for="laraI">I ≥</label>
+      <input type="number" id="laraI" value="0.1" min="0" step="0.1" style="width:56px"> %
+      <label><input type="checkbox" id="laraEq" checked>
+        <span id="laraEqLbl">интенсивность на распад корня ряда</span></label>
+      <button id="laraGo" class="primary">Найти</button>
+    </div>
+    <div id="laraOut"></div>
+  </div>
+  <div class="gbox"><span class="lg">Таблица эмиссий ряда</span>
+    <div class="line">
+      <label for="emiChain"><span id="emiChainLbl">ряд</span></label>
+      <select id="emiChain"></select>
+      <label for="emiI">I ≥</label>
+      <input type="number" id="emiI" value="0.1" min="0" step="0.1" style="width:56px"> %
+      <label><input type="checkbox" id="emiSortI">
+        <span id="emiSortLbl">сортировать по интенсивности</span></label>
+      <button id="emiGo">Показать</button>
+      <button id="emiCsv">Скачать CSV</button>
+    </div>
+    <div class="hint" id="emiHint"></div>
+    <div id="emiOut"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 3. ЛИНИИ ═══════════ -->
+<div class="tabbody" data-body="3">
+  <div class="gbox"><span class="lg">Адаптация под разрешение детектора (IDWin)</span>
+    <div class="line">
+      <label for="mR662">R =</label>
+      <input type="number" id="mR662" value="7.5" min="0.1" step="0.1" style="width:62px"
+        title="Разрешение детектора (FWHM) на 662 кэВ, %. NaI ~7–8, LaBr3 ~3, HPGe ~0.2">
+      <span>% на 662 кэВ</span><span class="sep">·</span><label for="mMode">критерий</label>
+      <select id="mMode" style="width:auto" title="Порог, ближе которого линии считаются нераздельными">
+        <option value="sparrow" selected>предел Sparrow — маркеры ROI</option>
+        <option value="anchor">якорный набор — библиотечный фит</option>
+        <option value="manual">вручную</option>
+      </select>
+      <input type="number" id="mK" value="0.85" min="0.05" step="0.05" style="width:58px"
+        title="Порог ΔE в единицах FWHM(E)"><span>× FWHM</span>
+      <button id="mergeBtn" title="Слить линии каждого нуклида (γ, X, ХРИ — независимо от выбора), которые ближе порога: E — центроид по I, I — сумма">Объединить близкие</button>
+      <button id="unmergeBtn">Вернуть исходные</button>
+      <span class="stat" id="mergeStat"></span>
+      <span style="flex:1"></span>
+      <span class="hint" style="margin:0">FWHM(E) = R·√(662·E)/100 · сцинтиллятор</span>
+      <details class="doc" style="margin:0"><summary>?</summary>
+      <div class="hint" id="resHint">
+  <p>
+      <b>R</b> — паспортное разрешение детектора (FWHM на 662 кэВ): NaI(Tl) 6.5–8 %, CsI(Tl) 8–10 %,
+      SrI₂(Eu) 3–3.5 %, LaBr₃ 2.7–3.3 %. С энергией пик уширяется как √E: FWHM(E) = R·√(662·E)/100 —
+      модель для <b>сцинтилляторов</b> (наш парк: LaBr₃/NaI/SrI₂/CsI); для HPGe (R ~0.15 %) она
+      занижает ширину на низких энергиях — там нужен закон √(a+bE), здесь не реализован.
+      </p>
+  <p><b>Критерий</b> — с какого разноса линии считать нераздельными. <b>Предел Sparrow</b>
+      (ΔE &lt; 0.85·FWHM, то есть 2σ) — физический предел разрешимости двух пиков: ближе этого
+      дублет виден как один пик, поэтому для ROI-маркеров сливаем. </p>
+  <p><b>Якорный набор</b>
+      (ΔE &lt; 0.25·FWHM) — для наборов, выгружаемых в библиотеку BecqMoni: там пары от 0.25 до
+      0.85 FWHM разбирает библиотечный фит по якорной линии (связка амплитуд по табличным
+      интенсивностям), а более далёкие — деконволюция, поэтому сливать их нельзя — набор
+      обедняется. </p>
+  <p><b>Вручную</b> — прежнее поведение (2–3×FWHM — грубое окно идентификации).</p>
+  </div>
+      </details>
+    </div>
+  </div>
+  <div class="infoline" id="mergeInfo"><span id="mergeHint"></span></div>
+  <div class="gbox"><span class="lg">Фильтры и выбор</span>
+   <div class="line">
+     <label><input type="checkbox" id="fIOn"> интенсивность ≥, %</label>
+     <input type="number" id="fMinI" value="3" min="0" step="0.5" style="width:56px"
+       title="Порог интенсивности для маркеров ROI; 3 % — рабочее значение для сцинтиллятора с R ≈ 6 %">
+     <select id="iMode" style="width:auto; max-width:250px">
+       <option value="rel" selected>относительная (внутри изотопа, макс = 100)</option>
+       <option value="abs">абсолютная (на распад)</option>
+     </select>
+     <span class="sep">·</span>
+     <label><input type="checkbox" id="fEOn"> энергия, кэВ</label>
+     <input type="number" id="fEmin" value="10" min="0" style="width:62px">
+     <span class="sep">—</span>
+     <input type="number" id="fEmax" value="3000" min="0" style="width:62px">
+     <span class="sep">·</span>
+     <label><input type="checkbox" id="fTOn"> T½</label>
+     <input type="number" id="fTmin" value="1" min="0" style="width:48px">
+     <select id="fTminU" style="width:auto"><option value="1">сек</option><option value="3600">ч</option>
+       <option value="86400" selected>сут</option><option value="31557600">лет</option></select>
+     <span class="sep">—</span>
+     <input type="number" id="fTmax" placeholder="∞" min="0" style="width:48px">
+     <select id="fTmaxU" style="width:auto"><option value="1">сек</option><option value="3600">ч</option>
+       <option value="86400">сут</option><option value="31557600" selected>лет</option></select>
+   </div>
+   <div class="line">
+     <span>Тип линий</span>
+     <label><input type="checkbox" class="fT" value="g" checked> γ</label>
+     <label><input type="checkbox" class="fT" value="x" checked> X (распад)</label>
+     <label><input type="checkbox" class="fT" value="xrf" checked> ХРИ</label>
+     <label><input type="checkbox" class="fT" value="sec" checked> вторичные</label>
+     <span class="sep">·</span>
+     <button id="selVisible">✓ выбрать все видимые</button>
+     <button id="unselVisible">✗ снять все видимые</button>
+     <label><input type="checkbox" id="hideUnsel"> скрыть невыбранные</label>
+     <span class="sep">·</span>
+     <label for="topN">топ-N по I на нуклид</label>
+     <input type="number" id="topN" value="5" min="1" style="width:48px">
+     <button id="selTop">Выбрать топ-N</button>
+   </div>
+   <div class="line">
+      <label><input type="checkbox" id="eqScale" checked>
+      равновесие ряда: интенсивности на один распад <b>родителя ряда</b></label>
+      <details class="doc" style="margin:0"><summary>?</summary>
+    <div class="hint" id="eqHint">
+  <p>Без галки I — «на 100 распадов самого излучающего нуклида», как в базе IAEA и в файлах
+      «Intensities» BecqMoni: у Tl-208 линия 2614 кэВ имеет I = 99.75 %. Но в равновесном ряду Th-232 через
+      Tl-208 идёт лишь 35.94 % распадов (ветвление Bi-212: β 64 % / α 36 %), поэтому <b>на один распад Th-232</b>
+      эта линия даёт 99.75 × 0.3594 ≈ 35.85 %. </p>
+  <p>Галка выполняет это умножение для членов за развилками
+      (Tl-208 ×0.3594, Po-212 ×0.6406; в ряду U-235: Th-227 ×0.9862, Fr-223 ×0.0138, Tl-207 ×0.99724,
+      Po-211 ×0.00276); остальные члены ряда — ×1.
+      </p>
+  <p>Включайте, когда ROI-набор описывает равновесный ряд как целое (сравнение относительных высот линий
+      разных членов между собой); выключайте, если хотите табличные значения «как в справочнике».</p>
+  </div>
+      </details>
+      <span class="hint" style="margin:0">Tl-208 ×0,3594 · Po-212 ×0,6406 · остальные члены ряда ×1</span>
+      <span class="sep">·</span>
+      <span class="hint" style="margin:0">сортировка — клик по заголовку таблицы</span>
+   </div>
+  </div>
+  <div class="cols2">
+  <div class="group" id="secGroup">
+    <div class="ghead" onclick="this.parentNode.classList.toggle('open')">
+      <span>Вторичные пики (расчёт по выбранным γ-линиям)</span><span>▾</span></div>
+    <div class="gbody">
+      <div class="line">
+        <label for="secMinI">для γ-линий с I ≥, %</label>
+        <input type="number" id="secMinI" value="10" style="width:52px">
+        <span style="font-size:12px">
+          <input type="checkbox" class="secT" value="bs" checked> рассеяние назад (BS)
+          <input type="checkbox" class="secT" value="ce"> комптон-край (CE)
+          <input type="checkbox" class="secT" value="se" checked> вылет 511 (SE)
+          <input type="checkbox" class="secT" value="de" checked> вылет 1022 (DE)
+          <input type="checkbox" class="secT" value="esc"> вылет I-K (NaI, −28.6)
+          <input type="checkbox" class="secT" value="ann"> аннигиляция 511
+          <input type="checkbox" class="secT" value="sum"> суммирование каскадное (E1+E2)
+          <input type="checkbox" class="secT" value="pu2"> наложение 2×E (pile-up)</span>
+        <button id="genSec">Сгенерировать</button>
+      </div>
+      <details class="doc"><summary>формулы</summary>
+      <div class="hint" id="secHint">
+  <p>BS = E/(1+2E/511); CE = E−BS; SE = E−511 (E&gt;1122); DE = E−1022 (E&gt;1222);
+        I-escape для E&lt;200 кэВ. </p>
+  <p><b>SUM</b> = E1+E2 — истинные совпадения каскадных линий одного
+        нуклида (заметно при близкой геометрии: Co-60 → 2505, Y-88 → 2734); <b>PU</b> = 2×E — наложение
+        импульсов одной сильной линии при большой загрузке (Cs-137 → 1324). </p>
+  <p><b>Поправки к положению.</b> Аналитическая формула даёт край ступеньки, а в спектре
+        виден центроид особенности, размытой разрешением, поэтому комптон-край сдвигается вниз
+        на <b>0,8·FWHM</b>, а пик обратного рассеяния — вверх на <b>10 кэВ</b> (многократное
+        рассеяние добавляется к однократному 180°). Обе поправки выведены из измерений
+        комплекса Gamma-1C (NaI(Tl) 63×63, защита Pb 50 мм + Cd/Cu):
+        31 надёжная запись из 41, коэффициент края кучно лежит в 0,69–0,84 на 340–1250 кэВ,
+        сдвиг рассеяния разбросан от +0,3 до +18 кэВ и задаётся геометрией источника.</p>
+  <p>Маркерная интенсивность — доля от родительской линии по измеренным отношениям площадей:
+        BS 8 %, CE 6 %, SE 6 %, DE и остальные 10 % (для SUM — от слабейшей из пары).
+        Физика (сверено по оригиналам): Knoll, Radiation Detection and Measurement,
+        3-е изд., гл. 10 — комптоновский край в разд. II.B, пик обратного рассеяния, пики
+        вылета и суммирование в разд. III; Gilmore, Practical Gamma-ray Spectrometry,
+        2-е изд., гл. 2 (взаимодействия), 9.2.3 (поиск пиков по второй производной) и
+        10 (сцинтилляционная спектрометрия).</p>
+  </div>
+      </details>
+    </div>
+  </div>
+  <div class="group" id="nearGroup">
+    <div class="ghead" onclick="this.parentNode.classList.toggle('open')">
+      <span>Поиск близких линий (по всей базе — кто ещё светит рядом)</span><span>▾</span></div>
+    <div class="gbody" style="max-height:400px">
+      <div class="line">
+        <label for="nearE">энергия, кэВ</label><input type="number" id="nearE" value="362" style="width:64px">
+        <label for="nearW">± окно</label><input type="number" id="nearW" value="10" min="0.5" style="width:48px">
+        <label for="nearI">I ≥, %</label><input type="number" id="nearI" value="0.5" min="0" style="width:48px">
+        <label for="nearT">T½ ≥</label><input type="number" id="nearT" value="0" min="0" style="width:48px">
+        <select id="nearTu" style="width:auto"><option value="1">сек</option><option value="3600">ч</option>
+        <option value="86400" selected>сут</option><option value="31557600">лет</option></select>
+        <button id="nearBtn">Искать</button>
+      </div>
+      <div id="nearOut" style="margin-top:6px; font-size:12px"></div>
+    </div>
+  </div>
+  </div>
+  <div class="tblscroll">
+    <table id="lineTbl">
+    <thead><tr>
+      <th data-k="sel">✓</th><th data-k="nuc">Нуклид ⇅</th><th data-k="E">E, кэВ ⇅</th>
+      <th data-k="I" title="На 100 распадов нуклида; для ХРИ — условная (Kα1=100)">I, % ⇅</th>
+      <th data-k="rel" title="Относительно самой сильной линии этого нуклида/элемента — по ней работает относительный фильтр">I отн., % ⇅</th>
+      <th data-k="hl">T½ ⇅</th><th data-k="type">Тип</th>
+    </tr></thead><tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════ 4. ОФОРМЛЕНИЕ И ЭКСПОРТ ═══════════ -->
+<div class="tabbody" data-body="4">
+  <div class="gbox"><span class="lg">Оформление ROI</span>
+  <div class="line">
+    <label for="roiMode">режим</label>
+    <select id="roiMode" style="width:auto; max-width:280px">
+      <option value="marker" selected>линии-маркеры (высота ∝ I, без зон)</option>
+      <option value="zone">зоны (границы вокруг пика)</option>
+      <option value="zone+marker">зоны + маркеры интенсивности</option>
+    </select>
+    <span id="wModeBox" style="display:none"><label for="wMode" style="display:inline">ширина зоны</label>
+      <select id="wMode" style="width:auto">
+        <option value="pct">% от энергии (как в BecqMoni)</option>
+        <option value="fwhm">k × FWHM (сцинтиллятор)</option>
+      </select></span>
+    <span id="pctBox" style="display:none"><label for="wPct" style="display:inline">% от E</label>
+      <input type="number" id="wPct" value="5" min="0.5" step="0.5" style="width:56px"></span>
+    <span id="fwhmBox" style="display:none"><label style="display:inline">R, % @662 / k</label>
+      <input type="number" id="r662" value="7.5" min="1" step="0.1" style="width:58px">
+      <input type="number" id="kF" value="3" min="1" step="0.5" style="width:48px"></span>
+  </div>
+  <p class="hint" id="wHint" style="display:none">FWHM(E) = R₆₆₂·√(662·E)/100; зона = E ± k·FWHM/2. Границы округляются наружу до целых кэВ.</p>
+  <div class="line" style="margin-top:6px">
+    <span>цвета</span>
+    <span class="seg" style="width:220px">
+      <button id="colByChain">по цепочке</button>
+      <button id="colByNuc">по нуклиду</button>
+    </span>
+    <span class="colorchips" id="colorBox" style="margin:0"></span>
+  </div>
+  </div>
+  <div class="gbox"><span class="lg">Экспорт</span>
+  <div class="line">
+    <label for="cfgName">имя ROI-конфигурации</label>
+    <input type="text" id="cfgName" value="IAEA lines" style="flex:1; min-width:120px; max-width:260px">
+    <button class="primary" id="btnXml">Скачать ROI .xml</button>
+    <button id="btnPreview">Предпросмотр</button>
+  </div>
+  <div class="line">
+    <label for="libName">имя набора (NuclideSet)</label>
+    <input type="text" id="libName" value="Новый набор" style="flex:1; min-width:120px; max-width:240px">
+    <label for="anchorSel">якорная линия</label>
+    <select id="anchorSel" style="width:auto; max-width:260px"
+      title="Линия с IsAnchor=true: найдя её, BecqMoni сажает остальные линии набора на табличные позиции и фитует их амплитуды"></select>
+  </div>
+  <div class="line">
+    <label><input type="checkbox" id="libFull"> полный набор (все линии, для фита)</label>
+    <label><input type="checkbox" id="bakOrig" checked> сохранить копию оригинала</label>
+    <button class="primary" id="btnNucXml" title="Выберите свой NuclideDefinition.xml — набор будет дописан в него, существующие нуклиды и наборы сохранятся">Дописать в библиотеку…</button>
+    <input type="file" id="mergeFile" accept=".xml" style="display:none">
+    <span class="stat" id="expStat"></span>
+  </div>
+  <details class="doc" style="margin-top:10px"><summary>куда класть файлы и как работает якорь</summary>
+  <div class="hint" id="expHint">
+  <p><b>ROI-конфигурация</b> кладётся в <code>%APPDATA%\BecqMoni\config\ROI\</code> (обычно
+    <code>C:\Users\&lt;имя&gt;\AppData\Roaming\BecqMoni\config\ROI\</code>) и появляется в списке ROI-конфигураций BecqMoni.
+    </p>
+  <p><b>Библиотека нуклидов</b> — тот же набор линий дописывается в ваш
+    <code>NuclideDefinition.xml</code> как именованный <b>набор нуклидов (NuclideSet)</b>: выбираете
+    свой файл (<code>%APPDATA%\BecqMoni\config\NuclideDefinition.xml</code>), скачивается его копия
+    с добавленными записями и набором — существующие нуклиды и наборы сохраняются. С галкой
+    «сохранить копию оригинала» рядом скачивается и неизменённый файл
+    (<code>…backup-ГГГГММДД-ЧЧММ.xml</code>). Замену делать при закрытом BecqMoni.
+    </p>
+  <p><b>Якорная линия</b> получает <code>IsAnchor=true</code>: найдя её в спектре, BecqMoni сажает
+    остальные линии набора на табличные позиции и фитует их амплитуды (библиотечный фит) —
+    без якоря этот механизм не запускается. </p>
+  <p><b>Полный набор</b> выгружает все линии выбранных
+    нуклидов, минуя галки, фильтры и объединение: по прогонам разработчика BecqMoni выигрыш даёт
+    именно полная цепочка ряда, а набор из одних сильных линий фиту ничего не добавляет.
+    Веса связанных линий берутся из <code>Intencity</code>, поэтому для рядов держите включённым
+    «Равновесие ряда», а сами нуклиды добавляйте цепочкой или одним родительским изотопом —
+    родитель в скобках имени и есть признак цепочки для BecqMoni.</p>
+  </div>
+  </details>
+  <pre id="xmlPrev" style="display:none"></pre>
+  </div>
+  <details class="doc" style="margin-top:10px"><summary>об источниках данных</summary>
+  <p class="hint" id="dbinfo"></p>
+  <div class="hint" id="footerText">
+  <p>
+  Данные: снимок IAEA Live Chart of Nuclides API (ENSDF) — файл <code>data/nuclides.js</code>, обновление —
+  <code>update_nuclides.py</code> (API не отдаёт CORS, поэтому обновление скриптом, страница автономна).
+  </p>
+  <p>ХРИ: NIST/Bearden. Вторичные пики: расчётные (Knoll, Gilmore &amp; Joss). Коэффициенты Бк/cps не заполняются —
+  задаются в BecqMoni по кривой эффективности.
+  </p>
+  <p><a href="https://github.com/VibeEngineering-LLC/becqmoni-roi-wizard" target="_blank" rel="noopener">Исходники на GitHub</a> ·
+  VibeEngineering · 2026 · неофициальный инструмент, не является частью
+  <a href="https://github.com/Am6er/BecqMoni" target="_blank" rel="noopener">BecqMoni</a>.</p>
+  </div>
+  </details>
+</div>
+
+<div class="toast" id="toast" style="display:none"></div>
+<div class="statusbar">
+  <span class="sum" id="sumBar"></span>
+  <span style="flex:1"></span>
+  <button id="stepPrev">◂ Назад</button>
+  <button id="stepNext" class="primary">Вперёд ▸</button>
+</div>
+</div>
+
+<script src="data/nuclides.js?v=20260725d"></script>
+<script src="data/xrf.js?v=20260725d"></script>
+<script>
+"use strict";
+var DB = window.NUCLIDE_DB, XRF = window.XRF_DB;
+var ME511 = 510.999;
+// Поправки к аналитическим положениям вторичных особенностей. Выведены из измерений
+// комплекса Gamma-1C (NaI(Tl) 63×63, УДС-ГЦ-63×63-USB; защита
+// Pb 50 мм + вкладыш Cd/Cu): 9 нуклидов, 18 первичных линий, 41 запись с квантилями по
+// фикстурам; в расчёт взяты 31 запись с n ≥ 2 и отношением площадей ≤ 0.6 — остальные
+// оказались наложениями (окно попадало на Pb-212 238.6).
+//   Комптон-край: |сдвиг| = k·FWHM(E_края), k = 0.78 (медиана 12 записей, разброс
+//     0.56…1.12); кучно 0.69…0.84 на 340–1250 кэВ, край 2614 занижен обрезанием шкалы.
+//     Источник правила даёт 0.7 по двум нуклидам, уточнено по расширенному набору.
+//   Обратное рассеяние: +9.9 кэВ (медиана 8 записей, разброс +0.3…+18.4). Через FWHM
+//     не выражается — сдвиг задаёт геометрия источника, а не разрешение.
+// Отношения площадей S_вторичный/S_фотопик (медианы): BS 8 %, CE 6 %, SE 6 %, DE 17 %
+// (последнее по 3 записям, оставлено 10 %). Физика формул: Knoll, Radiation Detection and
+// Measurement, 3-е изд., гл. 10: разд. II.B (комптоновский континуум и край, книжная
+// с. 309–311), разд. III (пик обратного рассеяния — с. 320–321, пики вылета — с. 312–316,
+// суммирование каскадов — с. 322–323, вылет K-рентгена иода −28 кэВ — с. 325);
+// Gilmore, Practical Gamma-ray Spectrometry, 2-е изд., гл. 2 (взаимодействия), гл. 9.2.3
+// (поиск пиков по второй производной, алгоритм Марискотти) и гл. 10 (сцинтилляционная
+// спектрометрия). Сверено по оригиналам, разбор — docs/REFERENCES-secondary-peaks.md.
+var SEC_FIX = {ceFwhmFactor:0.8, bsShift:10};
+var SEC_SOURCE = "Gamma-1C NaI 63×63, 31 запись";
+// вероятность прохождения распада ряда через нуклид (вековое равновесие):
+// Bi-212: β 64.06 % (→Po-212) / α 35.94 % (→Tl-208); Ac-227: β 98.62 % (→Th-227) / α 1.38 % (→Fr-223);
+// Bi-211: α 99.724 % (→Tl-207) / β 0.276 % (→Po-211)
+var EQ_FACTOR = {"Tl-208":0.3594, "Po-212":0.6406, "Fr-223":0.0138, "Th-227":0.9862,
+                 "Tl-207":0.99724, "Po-211":0.00276};
+var PALETTE = ["#e6821e","#c03535","#2e7d32","#1565c0","#7b1fa2","#00838f","#9e7a10",
+               "#d81b60","#5d4037","#455a64","#f4511e","#3949ab"];
+
+// дочерние в пределах каталога (для «+ с дочерними»); члены ЕРН-рядов покрыты цепочками
+var DAUGHTERS = {"Mo-99":["Tc-99m"], "Ce-144":["Pr-144"], "Ba-140":["La-140"],
+  "Zr-95":["Nb-95"], "Te-132":["I-132"], "I-133":["Xe-133"], "Cs-136":[],
+  "Ra-226":["Pb-214","Bi-214","Pb-210"], "Th-228":["Ra-224","Pb-212","Bi-212","Tl-208"]};
+
+var sel = { nuc:{}, xrf:{}, lines:[], secLines:[], merged:[], suppressed:{}, attr:{}, par:{}, root:{} };
+// attr[нуклид] = имя родителя: линии дочернего подписываются именем родителя
+// (режим «одним родительским изотопом», как «Добавить с линиями дочерних» в NuclideMaster)
+var colors = {};   // owner -> color
+var sortK = "E", sortDir = 1;
+
+// ── язык интерфейса ──
+var LANG = localStorage.getItem("roiLang") || "ru";
+function T(ru,en){ return LANG==="en" ? en : ru; }
+// названия семейств и рядов приходят из базы (RU: русская классификация, ANSI в скобках; EN: наоборот)
+function chainTitle(c){ var e = DB.chains[c]; return (LANG==="en" && e.title_en) ? e.title_en : e.title; }
+function famTitle(f){ var e = DB.families[f]; return e ? (LANG==="en" ? e.en : e.ru) : f; }
+function famInfo(f){ var e = DB.families[f]; return e ? (LANG==="en" ? e.info_en : e.info_ru) : ""; }
+function locHl(s){
+  s = fmtSci(s);
+  if (LANG!=="en" || !s) return s;
+  return s.replace(" лет"," y").replace(" сут"," d").replace(" мин"," min")
+          .replace(/ ч$/," h").replace(/ с$/," s").replace("стабилен/неизв.","stable/unk.");
+}
+// «4.47e+09 лет» — машинная запись; физику привычнее 4,47·10⁹ (в EN — точка)
+var SUP = {"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹","-":"⁻"};
+function fmtSci(s){
+  if (!s) return s;
+  s = String(s).replace(/(\d+(?:\.\d+)?)e([+-]?)0*(\d+)/gi, function(_, m, sign, ex){
+    return m+"·10"+(sign==="-"?SUP["-"]:"")+String(ex).split("").map(function(c){ return SUP[c]||c; }).join("");
+  });
+  return LANG==="en" ? s : s.replace(/(\d),(\d)/g,"$1 $2").replace(/(\d)\.(\d)/g,"$1,$2");
+}
+function dispNuc(n){ return (LANG==="en" && n.indexOf("ХРИ ")===0) ? "XRF "+n.slice(4) : n; }
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function hlText(n){ var e = DB.nuclides[n]; return e && e.hl_txt ? locHl(e.hl_txt) : "—"; }
+
+// ── построение UI выбора ──
+function famCode(f){ return f.toUpperCase(); }
+function famNucs(f){ return Object.keys(DB.nuclides).filter(function(n){ return DB.nuclides[n].fam.indexOf(f)>=0; }); }
+// строка списка: галка (или клик), имя, семейства/T½
+function nucRow(n, clickable){
+  var e = DB.nuclides[n], no = (e.g.length+e.x.length)===0;
+  var d = document.createElement("div");
+  d.className = "nuc"+(no?" nolines":"")+(clickable?" hit":"");
+  if (clickable){
+    d.dataset.pick = n;
+    var fams = e.fam.map(function(f){
+      return '<span class="fbadge f-'+f+'">'+esc(famCode(f))+'</span>'; }).join("");
+    d.innerHTML = '<span style="min-width:64px"><b>'+n+'</b></span>'+fams+
+      '<span class="hl">'+hlText(n)+' <span style="color:var(--accent)">γ'+e.g.length+'</span>'+
+      (e.x.length?' <span style="color:#8a3d72">X'+e.x.length+'</span>':"")+'</span>';
+  } else {
+    d.innerHTML = '<input type="checkbox" data-nuc="'+n+'" '+(sel.nuc[n]?"checked":"")+'>'+
+      '<span>'+n+'</span><span class="hl">'+hlText(n)+'</span>';
+  }
+  return d;
+}
+// комбобокс групп: семейства + ряды распада одним списком
+function buildGroupSel(){
+  var s = $("famSel"), keep = s.value;
+  s.innerHTML = "";
+  var og1 = document.createElement("optgroup"); og1.label = T("Семейства","Families");
+  Object.keys(DB.families).forEach(function(f){
+    var o = document.createElement("option"); o.value = "f:"+f;
+    o.textContent = famTitle(f)+" ("+famNucs(f).length+")"; og1.appendChild(o);
+  });
+  var og2 = document.createElement("optgroup"); og2.label = T("Ряды распада","Decay series");
+  Object.keys(DB.chains).forEach(function(c){
+    var o = document.createElement("option"); o.value = "c:"+c;
+    o.textContent = chainTitle(c)+" ("+DB.chains[c].order.length+")"; og2.appendChild(o);
+  });
+  s.appendChild(og1); s.appendChild(og2);
+  s.value = keep && s.querySelector('option[value="'+keep+'"]') ? keep : "f:"+Object.keys(DB.families)[0];
+}
+// члены выбранной группы + кнопки, зависящие от её типа
+function renderGroup(){
+  renderGroupButtons();
+  renderSource();
+  if ($("famInfoBox").style.display !== "none") showFamInfo(true);
+}
+// Кнопки группы пересобираются и отдельно — при каждой смене галочек: от того,
+// что отмечено, зависит и область действия, и доступность кнопок.
+function renderGroupButtons(){
+  var v = $("famSel").value, kind = v.slice(0,1), id = v.slice(2);
+  var ctl = $("famCtl");
+  // Раскрытие применяется к ОТМЕЧЕННЫМ галочкой нуклидам группы. Если не отмечено
+  // ничего — ко всей группе, и тогда оно осмысленно лишь там, где есть кого
+  // раскрывать: у ряда либо у пар вне рядов (Mo-99 → Tc-99m). У члена ЕРН-ряда
+  // родитель задан самим рядом, подменять его нельзя — цепочка развалится.
+  var picked = groupPicked();
+  var pickedExpandable = picked.filter(function(n){ return daughtersOf(n).filter(hasLines).length>0; });
+  var groupExpandable = kind==="c" || famNucs(id).some(function(n){
+    var e = DB.nuclides[n];
+    return e && !e.chain && daughtersOf(n).filter(hasLines).length > 0;
+  });
+  var expandable = pickedExpandable.length > 0 || (!picked.length && groupExpandable);
+  var offHint = picked.length
+    ? T("У отмеченных нуклидов нет дочерних с линиями в базе.",
+        "The ticked nuclides have no daughters with lines in the database.")
+    : T("Отметьте галочкой нужный нуклид — действие применится к нему. Без отметок раскрывать в этой группе нечего: у членов рядов родитель задан самим рядом.",
+        "Tick the nuclide you need — the action applies to it. With nothing ticked there is nothing to expand here: for series members the parent comes from the series itself.");
+  var scope = picked.length
+    ? T(" Применяется к отмеченным ("+picked.length+").", " Applies to the ticked ones ("+picked.length+").")
+    : T(" Ничего не отмечено — применяется ко всей группе.", " Nothing ticked — applies to the whole group.");
+  function btn(mode, label, tip){
+    var off = !expandable && mode!=="all";
+    return '<button class="grpAdd" data-mode="'+mode+'"'+(off?" disabled":"")+
+           ' title="'+(off ? offHint : tip + (mode==="all" ? "" : scope))+'">'+label+'</button> ';
+  }
+  // те же три варианта, что и в поиске: по одному / линиями под именем родителя / цепочкой
+  ctl.innerHTML =
+    btn("all", T("добавить все","add all"),
+        T("Каждый член группы — отдельным нуклидом","Every member as a separate nuclide")) +
+    btn("one", T("+ линии семейства","+ family lines"), kind==="c"
+        ? T("Все линии ряда под именем родителя — один изотоп","All series lines under the parent name — one nuclide")
+        : T("Дочерние — линиями под именем своего родителя","Daughters as lines under their parent’s name")) +
+    btn("chain", T("+ цепочка","+ chain"),
+        T("Дочерние отдельными нуклидами с пометкой родителя в скобках","Daughters as separate nuclides, parent in brackets"));
+}
+function showFamInfo(keepOpen){
+  var b = $("famInfoBox"), v = $("famSel").value;
+  if (!keepOpen && b.style.display !== "none"){ b.style.display = "none"; return; }
+  var std = LANG==="en" ? DB.meta.fam_standard_en : DB.meta.fam_standard_ru;
+  var txt = v.slice(0,1)==="f" ? "<b>"+famTitle(v.slice(2))+"</b> — "+famInfo(v.slice(2)) : "";
+  b.innerHTML = (txt ? txt+"<br>" : "")+(std||"");
+  b.style.display = "";
+}
+// три списка шага «Изотопы»: поиск по базе, члены группы, элементы ХРИ
+function renderSource(){
+  var box = $("searchList"); box.innerHTML = "";
+  var q = ($("nucSearch").value||"").trim().toLowerCase();
+  var names = Object.keys(DB.nuclides).sort();
+  var hits = q ? names.filter(function(n){
+    var e = DB.nuclides[n];
+    return n.toLowerCase().indexOf(q)>=0 || e.fam.some(function(f){ return f.indexOf(q)===0; });
+  }) : names;
+  if (!hits.length) box.innerHTML = '<div class="empty">'+T("Ничего не найдено.","Nothing found.")+'</div>';
+  else hits.slice(0, 200).forEach(function(n){ box.appendChild(nucRow(n, true)); });
+
+  var fb = $("famList"); fb.innerHTML = "";
+  var v = $("famSel").value, kind = v.slice(0,1), id = v.slice(2);
+  (kind==="c" ? DB.chains[id].order : famNucs(id)).forEach(function(n){ fb.appendChild(nucRow(n, false)); });
+
+  var xb = $("xrfList"); xb.innerHTML = "";
+  Object.keys(XRF).forEach(function(el){
+    var ctx = (LANG==="en" && XRF[el].ctx_en) ? XRF[el].ctx_en : XRF[el].ctx;
+    var d = document.createElement("div"); d.className = "nuc"; d.title = ctx;
+    d.innerHTML = '<input type="checkbox" data-xrf="'+el+'" '+(sel.xrf[el]?"checked":"")+'>'+
+      '<span><b>'+el+'</b></span><span class="note">'+esc(ctx)+'</span>';
+    xb.appendChild(d);
+  });
+}
+// Готовые наборы: пустой старт не объясняет инструмент, а один клик — объясняет.
+var PRESETS = [
+  {ru:"ЕРН-фон", en:"NORM background", tip:"Th-232 + U-238 цепочками + K-40",
+   tip_en:"Th-232 + U-238 as chains + K-40",
+   run:function(){ ["th232","u238"].forEach(function(c){ pickGroup("c:"+c,"chain"); }); addNuc("K-40"); }},
+  {ru:"Поверка Cs-137 / Co-60", en:"Cs-137 / Co-60 check", tip:"Контрольные источники",
+   tip_en:"Reference check sources",
+   run:function(){ ["Cs-137","Co-60"].forEach(addNuc); }},
+  {ru:"ОСГИ / калибровка", en:"Calibration set", tip:"Am-241, Ba-133, Eu-152, Cs-137, Co-60",
+   run:function(){ ["Am-241","Ba-133","Eu-152","Cs-137","Co-60"].forEach(addNuc); }},
+  {ru:"Медицинские", en:"Medical", tip:"Семейство MED",
+   tip_en:"MED family",
+   run:function(){ pickGroup("f:med","all"); }},
+  {ru:"ХРИ детектора и защиты", en:"Detector and shield XRF", tip:"Pb, W, La, Ba, I",
+   run:function(){ ["Pb","W","La","Ba","I"].forEach(function(el){ sel.xrf[el] = true; }); }}
+];
+function pickGroup(v, mode){ $("famSel").value = v; addGroup(mode); }
+function buildPresets(){
+  var bar = $("presetBar"); bar.innerHTML = T("Пресеты: ","Presets: ");
+  PRESETS.forEach(function(p, i){
+    if (i) bar.appendChild(document.createTextNode(" · "));
+    var c = document.createElement("span"); c.className = "preset"; c.dataset.preset = i;
+    c.textContent = LANG==="en" ? p.en : p.ru;
+    c.title = (LANG==="en" && p.tip_en) ? p.tip_en : p.tip;
+    bar.appendChild(c);
+  });
+}
+function buildSelectors(){
+  buildGroupSel(); renderGroup();
+}
+
+function ownerOf(n){
+  var e = DB.nuclides[n];
+  if (e && e.chain) return e.chain;
+  if (e) return e.fam[0] || n;
+  return n;
+}
+function chainRootName(c){ return DB.chains[c] ? DB.chains[c].order[0] : c; }
+
+function addNuc(n){ if (DB.nuclides[n] && !sel.nuc[n]) sel.nuc[n] = true; }
+function delNuc(n){ delete sel.nuc[n]; delete sel.attr[n]; delete sel.par[n]; delete sel.root[n]; }
+function hasLines(n){ var e = DB.nuclides[n]; return !!e && (e.g.length+e.x.length)>0; }
+// Подпись линий нуклида. attr — «одним изотопом» (всё под именем родителя);
+// par — «цепочкой» для пар вне ЕРН-рядов; у членов ряда родитель берётся из ряда.
+// Родитель в скобках — то, по чему BecqMoni опознаёт цепочку при связке амплитуд.
+// ChainOf в BecqMoni читает текст в ПОСЛЕДНИХ скобках имени как имя родительской
+// цепочки. У рентгеновской линии суффикс « X KA1» шёл после скобок и разрывал признак
+// цепочки, поэтому суффикс вставляется ПЕРЕД скобками родителя.
+function withSuffix(label, suffix){
+  var m = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(label);
+  return m ? m[1]+" "+suffix+" ("+m[2]+")" : label+" "+suffix;
+}
+function nucLabel(n){
+  if (sel.attr[n]) return sel.attr[n];
+  if (sel.par[n]) return n+" ("+sel.par[n]+")";
+  if (sel.root[n]) return n;          // корень пользовательской цепочки — без скобок
+  var e = DB.nuclides[n];
+  if (!e.chain || n===chainRootName(e.chain)) return n;   // сам родитель ряда — без скобки
+  return n+" ("+chainRootName(e.chain)+")";
+}
+
+// ── линии ──
+function rebuildLines(){
+  var old = {}; sel.lines.forEach(function(L){ old[L.key] = L.sel; });
+  var out = [];
+  Object.keys(sel.nuc).forEach(function(n){
+    var e = DB.nuclides[n];
+    var eq = $("eqScale").checked && EQ_FACTOR[n] ? EQ_FACTOR[n] : 1;
+    var label = nucLabel(n);
+    // дефолт выбора новых линий назначается ниже — по активным фильтрам
+    e.g.forEach(function(li){
+      var key = "g|"+n+"|"+li[0];
+      out.push({key:key, nuc:n, label:label, base:label, E:li[0], I:+(li[1]*eq).toFixed(4), rawI:li[1],
+        type:"g", hlY:e.hl_y||1e9, hl:hlText(n), sel: key in old ? old[key] : false, _new: !(key in old)});
+    });
+    e.x.forEach(function(li){
+      var key = "x|"+n+"|"+li[0]+"|"+li[2];
+      out.push({key:key, nuc:n, label:withSuffix(label, "X "+li[2]), base:label, E:li[0], I:+(li[1]*eq).toFixed(4), rawI:li[1],
+        type:"x", hlY:e.hl_y||1e9, hl:hlText(n), sel: key in old ? old[key] : false, _new: !(key in old)});
+    });
+  });
+  Object.keys(sel.xrf).forEach(function(el){
+    XRF[el].lines.forEach(function(li){
+      var key = "xrf|"+el+"|"+li[1];
+      out.push({key:key, nuc:"ХРИ "+el, label:T("ХРИ ","XRF ")+el+" "+li[0], E:li[1], I:li[2], rawI:li[2],
+        type:"xrf", hlY:1e9, hl:"—", sel: key in old ? old[key] : false, _new: !(key in old)});
+    });
+  });
+  sel.secLines.forEach(function(L){ if (sel.nuc[L.nuc]) { L.sel = L.key in old ? old[L.key] : L.sel; out.push(L); } });
+  var byKey = {};                                   // все линии ДО вычета слитых — для рецептов
+  out.forEach(function(L){ byKey[L.key] = L; });
+  out = out.filter(function(L){ return !sel.suppressed[L.key]; });
+  function ownerAlive(L){   // объединённая линия жива, пока жив её источник (изотоп ИЛИ ХРИ-элемент)
+    if (L.nuc.indexOf("ХРИ ")===0) return !!sel.xrf[L.nuc.slice(4)];
+    return !!sel.nuc[L.nuc];
+  }
+  sel.merged.forEach(function(L){
+    if (!ownerAlive(L)) return;
+    var main = L.mainKey && byKey[L.mainKey];       // перегенерация подписи/T½ под текущий язык
+    if (main){
+      L.label = main.label+" ("+L.elist+")";
+      L.hl = main.hl; L.hlY = main.hlY; L.type = main.type;
+    }
+    L.sel = L.key in old ? old[L.key] : L.sel;
+    out.push(L);
+  });
+  sel.lines = out;
+  // дефолт выбора для НОВЫХ линий: проходит ли активные фильтры
+  // (фильтры выключены → выбрано всё; включён порог → авто-выбор только проходящих)
+  var ctx = filterCtx();
+  out.forEach(function(L){ if (L._new){ delete L._new; L.sel = linePasses(L, ctx); } });
+}
+
+function nucMaxI(){
+  // максимум интенсивности по каждому нуклиду — для относительного фильтра
+  var mx = {};
+  sel.lines.forEach(function(L){ if (!mx[L.nuc] || L.I>mx[L.nuc]) mx[L.nuc] = L.I; });
+  return mx;
+}
+function filterCtx(){
+  var types = {};
+  document.querySelectorAll(".fT:checked").forEach(function(c){ types[c.value] = true; });
+  var tmax = parseFloat($("fTmax").value);
+  return {
+    useI: $("fIOn").checked, useE: $("fEOn").checked, useT: $("fTOn").checked,
+    mi: parseFloat($("fMinI").value)||0,
+    e0: parseFloat($("fEmin").value)||0, e1: parseFloat($("fEmax").value)||1e9,
+    t0: (parseFloat($("fTmin").value)||0)*parseFloat($("fTminU").value),
+    t1: isNaN(tmax) ? Infinity : tmax*parseFloat($("fTmaxU").value),
+    rel: $("iMode").value==="rel", mx: nucMaxI(), types: types
+  };
+}
+var YEAR_S = 31557600;
+function lineMatches(L, c){   // проверки I/E/T½ (без типа)
+  if (c.useE && !(L.E>=c.e0 && L.E<=c.e1)) return false;
+  if (c.useT && L.type!=="xrf"){          // ХРИ материалов — вне T½-фильтра
+    var s = L.hlY*YEAR_S;
+    if (s < c.t0 || s > c.t1) return false;
+  }
+  if (c.useI){
+    var I = c.rel ? (c.mx[L.nuc] ? 100*L.I/c.mx[L.nuc] : 0) : L.I;
+    if (I < c.mi) return false;
+  }
+  return true;
+}
+function linePasses(L, c){ return !!c.types[L.type] && lineMatches(L, c); }
+// фильтры управляют ВЫБОРОМ: изменение фильтра переставляет галки
+// (линии отжатых типов не трогаем — они просто скрыты из вида)
+function applyFilterSelection(){
+  var c = filterCtx();
+  sel.lines.forEach(function(L){ if (c.types[L.type]) L.sel = lineMatches(L, c); });
+}
+// видимость таблицы: только типы + «скрыть невыбранные»
+function visibleLines(){
+  var c = filterCtx(), hideU = $("hideUnsel").checked;
+  return sel.lines.filter(function(L){ return (!hideU || L.sel) && c.types[L.type]; });
+}
+
+function renderTable(){
+  var vis = visibleLines();
+  var mx = nucMaxI();
+  function relOf(L){ return mx[L.nuc] ? 100*L.I/mx[L.nuc] : 0; }
+  vis.sort(function(a,b){
+    var d;
+    if (sortK==="nuc") d = a.label<b.label?-1:(a.label>b.label?1:a.E-b.E);
+    else if (sortK==="E") d = a.E-b.E;
+    else if (sortK==="I") d = a.I-b.I;
+    else if (sortK==="rel") d = relOf(a)-relOf(b);
+    else if (sortK==="hl") d = a.hlY-b.hlY;
+    else if (sortK==="sel") d = (a.sel?1:0)-(b.sel?1:0);
+    else d = a.type<b.type?-1:1;
+    return d*sortDir;
+  });
+  var tb = $("lineTbl").querySelector("tbody"); tb.innerHTML = "";
+  var BADGE = {g:'<span class="badge b-g">γ</span>', x:'<span class="badge b-x">X</span>',
+    xrf:'<span class="badge b-xrf">ХРИ</span>', sec:'<span class="badge b-sec">втор</span>'};
+  vis.forEach(function(L){
+    var tr = document.createElement("tr"); if (L.sel) tr.className = "selrow";
+    var rel = relOf(L);
+    // микро-бар по относительной интенсивности: «где сильные линии» видно без чтения чисел.
+    // Полупрозрачная заливка, а не var(--sel): на выбранной строке фон и так --sel,
+    // сплошной бар с ним сливался бы
+    var bar = 'background:linear-gradient(90deg,var(--bar) '+rel.toFixed(1)+'%,transparent '+rel.toFixed(1)+'%)';
+    tr.dataset.key = L.key;
+    tr.innerHTML = '<td><input type="checkbox" data-key="'+L.key+'" '+(L.sel?"checked":"")+'></td>'+
+      '<td>'+esc(dispNuc(L.label))+'</td><td>'+fmtSci(L.E.toFixed(L.E<100?2:1))+'</td>'+
+      '<td style="'+bar+'">'+fmtSci(String(L.I))+'</td>'+
+      '<td>'+fmtSci(rel.toFixed(1))+'</td>'+
+      '<td>'+esc(L.hl)+'</td><td>'+BADGE[L.type]+'</td>';
+    tb.appendChild(tr);
+  });
+  renderColors(); renderSelBar(); renderExpStat(); renderSum();
+}
+
+function renderSelBar(){
+  var bar = $("selBar"); bar.innerHTML = "";
+  Object.keys(sel.nuc).forEach(function(n){
+    var c = document.createElement("span"); c.className = "chip on"; c.dataset.del = n;
+    c.textContent = n+" ×"; bar.appendChild(c);
+  });
+  Object.keys(sel.xrf).forEach(function(el){
+    var c = document.createElement("span"); c.className = "chip on"; c.dataset.delx = el;
+    c.textContent = T("ХРИ ","XRF ")+el+" ×"; bar.appendChild(c);
+  });
+  if (!bar.children.length) bar.innerHTML = '<span class="hint" style="margin:0">'+
+    T("пусто — начните с готового набора выше","empty — start with a preset above")+'</span>';
+}
+
+// короткое подтверждение действия: скачивание само по себе ничего не сообщает
+var toastT = null;
+function toast(html, copyText){
+  var el = $("toast");
+  el.innerHTML = html + (copyText ? ' <button id="toastCopy">'+T("скопировать путь","copy path")+'</button>' : "");
+  el.style.display = "block";
+  if (copyText) $("toastCopy").addEventListener("click", function(){
+    navigator.clipboard && navigator.clipboard.writeText(copyText);
+    this.textContent = T("скопировано","copied");
+  });
+  clearTimeout(toastT); toastT = setTimeout(function(){ el.style.display = "none"; }, 8000);
+}
+// статусная строка и счётчики на закладках — как в окне хоста: состояние шага
+// читается, не открывая шаг
+function renderSum(){
+  var lines = sel.lines.filter(function(L){ return L.sel; });
+  var nucs = {}; lines.forEach(function(L){ nucs[L.nuc] = 1; });
+  var shown = document.querySelectorAll("#lineTbl tbody tr").length;
+  var a = anchorKeyOf(libLines()), aL = libLines().filter(function(L){ return L.key===a; })[0];
+  var step = +(document.querySelector(".tabs button.on")||{dataset:{tab:"1"}}).dataset.tab;
+  if (step===1 || step===2){
+    $("sumBar").innerHTML = "<b>"+Object.keys(sel.nuc).length+"</b>"+T(" нуклидов · "," nuclides · ")+
+      "<b>"+sel.lines.length+"</b>"+T(" линий в базе выше порога"," lines above the database threshold");
+    updTabLabels(lines.length);       // иначе подписи закладок остаются на языке загрузки
+    updSteps();                       // и кнопки шагов — от прошлого шага
+    return;
+  }
+  $("sumBar").innerHTML =
+    T("Показано ","Shown ")+shown+T(" из ", " of ")+sel.lines.length+
+    T(" · выбрано "," · selected ")+"<b>"+lines.length+"</b>"+T(" линий у "," lines of ")+
+    "<b>"+Object.keys(nucs).length+"</b>"+T(" нуклидов"," nuclides")+
+    (sel.merged.length ? T(" · слито групп ", " · merged groups ")+sel.merged.length : "")+
+    (aL ? " · "+T("якорь ","anchor ")+esc(dispNuc(aL.label))+" "+aL.E.toFixed(1) : "");
+  updTabLabels(lines.length);
+  updSteps();
+}
+// подписи закладок со счётчиками; вызывается на любом шаге, иначе при переключении
+// языка на первом шаге закладка «Изотопы» оставалась на прежнем языке
+function updTabLabels(nLines){
+  var nSrc = Object.keys(sel.nuc).length + Object.keys(sel.xrf).length;
+  document.querySelector('.tabs button[data-tab="1"]').innerHTML =
+    T("1 · Изотопы","1 · Nuclides")+(nSrc ? ' <b>'+nSrc+'</b>' : "");
+  var nCh = chainMembersSelected();
+  document.querySelector('.tabs button[data-tab="2"]').innerHTML =
+    T("2 · Цепочки","2 · Chains")+(nCh ? ' <b>'+nCh+'</b>' : "");
+  document.querySelector('.tabs button[data-tab="3"]').innerHTML =
+    T("3 · Линии","3 · Lines")+(nLines ? ' <b>'+nLines+'</b>' : "");
+  document.querySelector('.tabs button[data-tab="4"]').innerHTML =
+    T("4 · Оформление и экспорт","4 · Styling and export");
+}
+
+// ── вторичные пики ──
+function genSecondaries(){
+  var minI = parseFloat($("secMinI").value)||10;
+  var types = Array.prototype.slice.call(document.querySelectorAll(".secT:checked")).map(function(c){return c.value;});
+  sel.secLines = [];
+  var haveAnn = false;
+  sel.lines.forEach(function(L){
+    if (L.type!=="g" || !L.sel || L.I<minI) return;
+    var base = L.nuc+" "+Math.round(L.E);
+    // доля от родительской линии — медианы измеренных отношений S_вторичный/S_фотопик
+    // (см. SEC_SOURCE), а не общие 10 %: разброс между типами почти втрое
+    function push(tag,E,frac,note){
+      if (E<4) return;
+      sel.secLines.push({key:"sec|"+tag+"|"+L.nuc+"|"+Math.round(E), nuc:L.nuc,
+        label:tag+" ("+base+")", E:+E.toFixed(2), I:+(L.I*frac).toFixed(3), rawI:0,
+        type:"sec", hlY:L.hlY, hl:L.hl, sel:true, note:note});
+    }
+    var bs = L.E/(1+2*L.E/ME511);
+    var ce = L.E - bs;
+    // Аналитическая формула даёт край ступеньки, а в спектре виден центроид особенности,
+    // размытой разрешением: пикоискатель берёт максимум отклика второй производной и
+    // садится НИЖЕ ступеньки. Обратное рассеяние, наоборот, уходит ВВЕРХ — многократное
+    // рассеяние добавляется к однократному 180°. Обе поправки — из измерений, см. SEC_SOURCE.
+    if (types.indexOf("bs")>=0 && L.E>=200) push("BS", bs + SEC_FIX.bsShift, 0.08, "рассеяние назад");
+    if (types.indexOf("ce")>=0 && L.E>=200) push("CE", ce - SEC_FIX.ceFwhmFactor*fwhmDet(ce), 0.06, "комптон-край");
+    if (types.indexOf("se")>=0 && L.E>1122) push("SE", L.E-ME511, 0.06, "одиночный вылет");
+    if (types.indexOf("de")>=0 && L.E>1222) push("DE", L.E-2*ME511, 0.10, "двойной вылет");
+    if (types.indexOf("esc")>=0 && L.E<200) push("I-esc", L.E-28.6, 0.10, "вылет K-линии I (NaI)");
+    if (types.indexOf("pu2")>=0) push("PU", 2*L.E, 0.10, "наложение 2×E");
+    if (types.indexOf("ann")>=0) haveAnn = true;
+  });
+  // каскадное суммирование: пары выбранных γ-линий одного нуклида
+  if (types.indexOf("sum")>=0){
+    var byN = {};
+    sel.lines.forEach(function(L){
+      if (L.type==="g" && L.sel && L.I>=minI) (byN[L.nuc]=byN[L.nuc]||[]).push(L);
+    });
+    Object.keys(byN).forEach(function(n){
+      var ls = byN[n];
+      for (var i=0;i<ls.length;i++) for (var j=i+1;j<ls.length;j++){
+        var E = ls[i].E+ls[j].E;
+        sel.secLines.push({key:"sec|sum|"+n+"|"+Math.round(E), nuc:n,
+          label:"SUM ("+n+" "+Math.round(ls[i].E)+"+"+Math.round(ls[j].E)+")", E:+E.toFixed(2),
+          I:+(0.1*Math.min(ls[i].I,ls[j].I)).toFixed(3), rawI:0, type:"sec",
+          hlY:ls[i].hlY, hl:ls[i].hl, sel:true});
+      }
+    });
+  }
+  if (haveAnn){
+    var dup = sel.lines.some(function(L){ return L.sel && Math.abs(L.E-511)<1.5; });
+    if (!dup) sel.secLines.push({key:"sec|ann|511", nuc:Object.keys(sel.nuc)[0]||"—",
+      label:T("Аннигиляция 511","Annihilation 511"), E:511.0, I:5, rawI:0, type:"sec", hlY:1e9, hl:"—", sel:true});
+  }
+  rebuildLines(); renderTable();
+}
+
+// ── слияние близких линий под разрешение (аналог IDWin NuclideMaster) ──
+function mergeAllLines(){
+  var kF = parseFloat($("mK").value)||0.85;
+  var r  = parseFloat($("mR662").value)||7.5;
+  function fwhmM(E){ return r/100*Math.sqrt(662*E); }
+  // идемпотентно: сброс прежних объединений, пересчёт с текущим R
+  sel.merged = []; sel.suppressed = {}; rebuildLines();
+  var byNuc = {};
+  sel.lines.forEach(function(L){
+    if ((L.type==="g"||L.type==="x"||L.type==="xrf") && !L.mergedFlag)
+      (byNuc[L.nuc]=byNuc[L.nuc]||[]).push(L);       // ВСЕ линии нуклида, выбор не важен
+  });
+  var nMerged = 0;
+  Object.keys(byNuc).forEach(function(n){
+    var ls = byNuc[n].slice().sort(function(a,b){return a.E-b.E;});
+    var cluster = [];
+    function flush(){
+      if (cluster.length >= 2){
+        var sumI = 0, cE = 0, anySel = false, main = cluster[0];
+        cluster.forEach(function(L){ sumI += L.I; cE += L.E*L.I; anySel = anySel||L.sel;
+          if (L.I > main.I) main = L; });
+        cE = cE/sumI;
+        var fE = function(E){ return E<100 ? E.toFixed(1) : Math.round(E); };
+        var elist = fE(cluster[0].E)+"–"+fE(cluster[cluster.length-1].E);   // интервал слитых линий
+        var m = {key:"m|"+n+"|"+cE.toFixed(1), nuc:n,
+          label: main.label+" ("+elist+")",
+          mainKey: main.key, elist: elist,          // рецепт для перегенерации при смене языка
+          E:+cE.toFixed(2), I:+sumI.toFixed(3), rawI:sumI,
+          type: main.type, hlY:main.hlY, hl:main.hl, sel:anySel, mergedFlag:true};
+        sel.merged.push(m);
+        cluster.forEach(function(L){ sel.suppressed[L.key] = true; });
+        nMerged++;
+      }
+      cluster = [];
+    }
+    // Порог применяется ко ВСЕЙ группе, а не к соседней паре: иначе цепочка
+    // близких линий (944…989 у Ac-228) сцепляется в группу шире порога и
+    // объединяет то, что детектор различает. Линии отсортированы по E, поэтому
+    // достаточно сравнить с первой линией группы.
+    ls.forEach(function(L){
+      if (!cluster.length){ cluster = [L]; return; }
+      if (L.E - cluster[0].E <= kF*fwhmM(L.E)) cluster.push(L);
+      else { flush(); cluster = [L]; }
+    });
+    flush();
+  });
+  rebuildLines(); renderTable();
+  // число групп немонотонно по порогу (при большом k мелкие группы сливаются в одну),
+  // поэтому показываем и сколько исходных линий поглощено — эта величина растёт с порогом
+  var absorbed = Object.keys(sel.suppressed).length;
+  $("mergeStat").textContent = nMerged
+    ? T("→ групп: ","→ groups: ")+nMerged+T(", слито линий: ",", lines merged: ")+absorbed
+    : T("→ ближе порога линий нет","→ no lines closer than the threshold");
+}
+function unmergeAll(){ sel.merged = []; sel.suppressed = {}; $("mergeStat").textContent=""; rebuildLines(); renderTable(); }
+
+// ── имя записи для библиотеки ──
+// ChainOf (BecquerelMonitor/LibraryPeakFitter.cs:502) читает текст в ПОСЛЕДНИХ скобках
+// имени как имя родительской цепочки. У слитой линии подпись кончается интервалом
+// энергий — «Ac-228 (Th-232) (964.8–969.0)» — и цепочка читалась как «964.8–969.0»,
+// то есть связка амплитуд по ряду для слитых линий не собиралась. В библиотечном
+// экспорте интервал выносим из скобок, скобки оставляем родителю.
+function libLabel(L){
+  var name = L.label;
+  if (L.mergedFlag && L.elist){
+    var tail = " ("+L.elist+")";
+    var base = name.slice(-tail.length)===tail ? name.slice(0, -tail.length) : name;
+    var m = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(base);      // родитель в концевых скобках
+    name = m ? m[1]+" "+L.elist+" ("+m[2]+")" : base+" "+L.elist;
+  }
+  // ChainOf читает цепочку из ПОСЛЕДНИХ скобок, а при их отсутствии — берёт имя целиком.
+  // Поэтому «U-238 X L» оказывается собственной цепочкой и не связывается с «U-238»:
+  // у корня ряда и у одиночного нуклида линии с суффиксом выпадали из связки. Цепочку
+  // дописываем явно — для ХРИ материалов не делаем, у них связывать нечего.
+  // Цепочку берём из базовой подписи, а не из имени нуклида: в режиме «линии
+  // семейства» линия Ra-228 числится под именем Th-232, и цепочкой должен стать
+  // Th-232, иначе набор снова рассыпется по членам ряда.
+  var base = L.base || L.nuc;
+  if (L.type!=="xrf" && L.type!=="sec" && !/\([^()]*\)\s*$/.test(name) && name!==base){
+    name += " ("+base+")";
+  }
+  return name;
+}
+
+// ── проверки перед сохранением (аналог NuclideMaster) ──
+// target: "roi" — маркеры, все замечания совещательные; "lib" — набор для библиотечного
+// фита, где те же два замечания делают набор нерабочим, а не просто неаккуратным:
+// две линии на одной позиции вырождают подгонку амплитуд (два параметра на один пик),
+// а линия с Intencity = 0 выпадает из связки по табличным интенсивностям.
+function checkIssues(target){
+  var lib = target==="lib";
+  var lines = lib ? libLines() : sel.lines.filter(function(L){return L.sel;});
+  var warn = [], err = [];
+  var mode = $("roiMode").value;
+  var srt = lines.slice().sort(function(a,b){return a.E-b.E;});
+  function nm(L){ return lib ? libLabel(L) : L.label; }
+  // Совпавшие энергии подгонку амплитуд вырождают, но запрещать экспорт из-за них
+  // нельзя: пара «рентген распада + ХРИ того же элемента» — это физически одна линия,
+  // и решение, оставлять её или снимать, за оператором. Поэтому предупреждение,
+  // а не запрет, — и для ROI, и для набора.
+  for (var i=1;i<srt.length;i++){
+    if (Math.abs(srt[i].E-srt[i-1].E) < 1.0)
+      warn.push(T("равные энергии: «","equal energies: “")+nm(srt[i-1])+T("» и «","” and “")+nm(srt[i])+T("» ("," (")+srt[i-1].E+" / "+srt[i].E+T(" кэВ)"," keV)"));
+  }
+  // А вот нулевая интенсивность — именно ошибка: такая линия выпадает из связки
+  // по цепочке, и набор молча работает не так, как показан.
+  lines.forEach(function(L){ if (!(L.I>0))
+    (lib ? err : warn).push(T("нулевой выход: «","zero yield: “")+nm(L)+T("» ("," (")+L.E+T(" кэВ)"," keV)")); });
+  if (lib){
+    // без якоря LibraryPeakFitter не стартует вовсе, а якорь на ХРИ или вторичном маркере
+    // хуже отсутствия: фит «найдёт» опору там, где её физически нет
+    var aKey = anchorKeyOf(lines), aL = lines.filter(function(L){ return L.key===aKey; })[0];
+    if (!aL) err.push(T("нет якорной линии: в наборе нет ни одной линии распада (ХРИ и вторичные маркеры якорем быть не могут) — библиотечный фит без якоря не запускается",
+                        "no anchor line: the set has no decay line (XRF and secondary markers cannot be anchors) — the library fit does not start without one"));
+    else if (aL.type!=="g") warn.push(T("якорь — рентгеновская линия «","the anchor is an X-ray line “")+nm(aL)+
+      T("»: для опоры фита надёжнее γ-линия","”: a γ line is a more reliable support for the fit"));
+  }
+  if (!lib && mode!=="marker"){
+    for (var j=1;j<srt.length;j++){
+      var a = limitsFor(srt[j-1]), b = limitsFor(srt[j]);
+      if (b[0] < a[1]) warn.push(T("перекрытие зон: «","zone overlap: “")+srt[j-1].label+"» ["+a[0]+"–"+a[1]+"]"+T(" и «"," and “")+srt[j].label+"» ["+b[0]+"–"+b[1]+"]");
+    }
+  }
+  return {warn:warn, err:err};
+}
+// диалог замечаний: для ROI — «сохранить всё равно?», для набора ошибки останавливают
+function issueList(a){ return "⚠ "+a.slice(0,8).join("\n⚠ ")+(a.length>8 ? "\n…" : ""); }
+function passIssues(target){
+  var iss = checkIssues(target);
+  if (iss.err.length){
+    alert(T("Набор для библиотечного фита сохранить нельзя — ","The set for the library fit cannot be saved — ")+
+      iss.err.length+T(" ошибок:\n\n"," errors:\n\n")+issueList(iss.err)+
+      T("\n\nДве линии на одной энергии вырождают подгонку амплитуд, а нулевая интенсивность выбрасывает линию из связки по цепочке. Снимите одну из линий пары; смешанные линии (например Pb Kα и рентген распада того же свинца) оставляют маркером в ROI, а в набор не включают. Если пары — L-серии членов одного ряда (10–15 кэВ), проще включить фильтр по энергии от ~40 кэВ: там они всегда лежат друг на друге.",
+        "\n\nTwo lines at the same energy make the amplitude fit degenerate, and zero intensity drops a line out of the chain coupling. Deselect one line of the pair; mixed lines (say Pb Kα and the decay X-rays of the same lead) are kept as an ROI marker and left out of the set. If the pairs are L series of one decay chain (10–15 keV), the simplest fix is an energy filter from ~40 keV — down there they always sit on top of each other."));
+    return false;
+  }
+  if (iss.warn.length) return confirm(T("Проверка данных нашла ","Data check found ")+iss.warn.length+
+    T(" замечаний:\n\n"," issues:\n\n")+issueList(iss.warn)+T("\n\nВсё равно сохранить?","\n\nSave anyway?"));
+  return true;
+}
+
+// ── поиск близких линий по всей базе (аналог окна NuclideMaster) ──
+function searchNear(){
+  var E0 = parseFloat($("nearE").value), W = parseFloat($("nearW").value)||10;
+  var mi = parseFloat($("nearI").value)||0, mT = (parseFloat($("nearT").value)||0)*parseFloat($("nearTu").value);
+  if (!(E0>0)){ $("nearOut").innerHTML = '<span class="warn">'+T("Задайте энергию.","Enter an energy.")+'</span>'; return; }
+  var hits = [];
+  Object.keys(DB.nuclides).forEach(function(n){
+    var e = DB.nuclides[n];
+    if (mT>0 && (!e.hl_s || e.hl_s < mT)) return;
+    e.g.forEach(function(li){
+      if (Math.abs(li[0]-E0)<=W && li[1]>=mi) hits.push({n:n,E:li[0],I:li[1],t:"γ",hl:e.hl_txt||"—"});
+    });
+    e.x.forEach(function(li){
+      if (Math.abs(li[0]-E0)<=W && li[1]>=mi) hits.push({n:n,E:li[0],I:li[1],t:"X "+li[2],hl:e.hl_txt||"—"});
+    });
+  });
+  Object.keys(XRF).forEach(function(el){
+    XRF[el].lines.forEach(function(li){
+      if (Math.abs(li[1]-E0)<=W) hits.push({n:"ХРИ "+el,E:li[1],I:li[2],t:"ХРИ "+li[0],hl:"—",xrf:el});
+    });
+  });
+  hits.sort(function(a,b){ return Math.abs(a.E-E0)-Math.abs(b.E-E0); });
+  if (!hits.length){ $("nearOut").innerHTML = T("В окне ","Within ")+E0+" ± "+W+T(" кэВ ничего не найдено."," keV nothing found."); return; }
+  var h = '<table><thead><tr><th>ΔE</th><th style="text-align:left">'+T("Нуклид","Nuclide")+'</th><th>'+T("E, кэВ","E, keV")+'</th>'+
+          '<th>I, %</th><th>'+T("Тип","Type")+'</th><th>T½</th><th></th></tr></thead><tbody>';
+  hits.slice(0,40).forEach(function(x){
+    var inSel = sel.nuc[x.n] || (x.xrf && sel.xrf[x.xrf]);
+    h += '<tr><td>'+(x.E-E0>=0?"+":"")+(x.E-E0).toFixed(1)+'</td><td style="text-align:left">'+esc(dispNuc(x.n))+'</td>'+
+      '<td>'+x.E.toFixed(2)+'</td><td>'+x.I+'</td><td>'+esc(LANG==="en"?x.t.replace("ХРИ","XRF"):x.t)+'</td><td>'+esc(locHl(x.hl))+'</td>'+
+      '<td>'+(inSel?T("в наборе","added"):'<button data-nearadd="'+(x.xrf?("xrf:"+x.xrf):x.n)+'" style="padding:2px 8px;font-size:12px">'+T("+ добавить","+ add")+'</button>')+'</td></tr>';
+  });
+  h += "</tbody></table>"+(hits.length>40?'<p class="hint">'+T("Показаны первые 40 из ","Showing first 40 of ")+hits.length+'.</p>':"");
+  $("nearOut").innerHTML = h;
+}
+
+// ── цвета ──
+function ownersInUse(){
+  // цвета доступны сразу по добавленным нуклидам/элементам, не дожидаясь выбора линий
+  var set = {};
+  Object.keys(sel.nuc).forEach(function(n){ set[colorMode==="chain" ? ownerOf(n) : n] = true; });
+  Object.keys(sel.xrf).forEach(function(el){ set["ХРИ "+el] = true; });
+  return Object.keys(set);
+}
+var colorMode = "chain";
+function colorFor(owner){
+  if (!colors[owner]){
+    var used = Object.keys(colors).length;
+    colors[owner] = PALETTE[used % PALETTE.length];
+  }
+  return colors[owner];
+}
+function lineColor(L){
+  var o = L.type==="xrf" ? L.nuc : (colorMode==="chain" ? ownerOf(L.nuc) : L.nuc);
+  return colorFor(o);
+}
+function ownerTitle(o){
+  if (DB.chains[o]) return chainTitle(o);
+  if (DB.families[o]) return famTitle(o);
+  return dispNuc(o);
+}
+function renderColors(){
+  var box = $("colorBox"); box.innerHTML = "";
+  var owners = ownersInUse();
+  if (!owners.length){
+    box.innerHTML = '<span class="hint">'+T(
+      "Добавьте нуклиды или элементы ХРИ в блоке 1 — здесь появятся цветовые пикеры (клик по квадратику меняет цвет группы).",
+      "Add nuclides or XRF elements in block 1 — color pickers will appear here (click a swatch to change the group color).")+'</span>';
+    return;
+  }
+  owners.forEach(function(o){
+    var d = document.createElement("span"); d.className = "cchip";
+    d.innerHTML = '<input type="color" value="'+colorFor(o)+'" data-owner="'+o+'"><span>'+esc(ownerTitle(o))+'</span>';
+    box.appendChild(d);
+  });
+}
+
+// ── FWHM / зоны ──
+// Разрешение детектора (шаг 2). Именно оно задаёт порог слияния, выбор якоря и
+// поправку положения комптоновского края.
+function fwhmDet(E){ var r = parseFloat($("mR662").value); if (!(r>0)) r = 7.5; return r/100*Math.sqrt(662*E); }
+// Ширина ROI-зоны задаётся своим полем (шаг 3): пользователь может нарочно взять окно
+// шире или уже аппаратного разрешения. Пустое поле не должно давать NaN в границах.
+function fwhm(E){ var r = parseFloat($("r662").value); if (!(r>0)) r = parseFloat($("mR662").value)||7.5; return r/100*Math.sqrt(662*E); }
+function limitsFor(L){
+  var mode = $("roiMode").value;
+  if (mode==="marker") return [-10,-10];
+  if ($("wMode").value==="pct"){
+    var pv = parseFloat($("wPct").value); if (!(pv>0)) pv = 5;
+    var p = pv/100;
+    return [Math.floor(L.E - L.E*p/2), Math.ceil(L.E + L.E*p/2)];
+  }
+  var kf = parseFloat($("kF").value); if (!(kf>0)) kf = 3;
+  var w = kf*fwhm(L.E);
+  return [Math.floor(L.E - w/2), Math.ceil(L.E + w/2)];
+}
+
+// ── экспорт XML ──
+function toXml(){
+  var mode = $("roiMode").value;
+  var lines = sel.lines.filter(function(L){ return L.sel; });
+  lines.sort(function(a,b){ return a.label<b.label?-1:(a.label>b.label?1:a.E-b.E); });
+  var now = new Date().toISOString();
+  var guid = (crypto.randomUUID) ? crypto.randomUUID() :
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(c){
+      var r=Math.random()*16|0, v=c==="x"?r:(r&3|8); return v.toString(16);});
+  var s = '<?xml version="1.0"?>\n'+
+    '<ROIConfigData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'+
+    '  <FormatVersion>120920</FormatVersion>\n'+
+    '  <Guid>'+guid+'</Guid>\n'+
+    '  <Name>'+esc($("cfgName").value||"IAEA lines")+'</Name>\n'+
+    '  <LastUpdated>'+now+'</LastUpdated>\n'+
+    '  <ROIDefinitions>\n';
+  lines.forEach(function(L){
+    var lim = limitsFor(L);
+    var inten = (mode==="zone") ? 0 : L.I;         // zone: чистые зоны; marker/zone+marker: линии
+    var hl = L.hlY && isFinite(L.hlY) ? L.hlY : 1e9;
+    s += '    <ROIDefinitionData>\n'+
+      '      <Name>'+esc(L.label)+'</Name>\n'+
+      '      <Enabled>true</Enabled>\n'+
+      '      <PeakEnergy>'+L.E+'</PeakEnergy>\n'+
+      '      <LowerLimit>'+lim[0]+'</LowerLimit>\n'+
+      '      <UpperLimit>'+lim[1]+'</UpperLimit>\n'+
+      '      <Color>'+lineColor(L).toUpperCase()+'</Color>\n'+
+      '      <BecquerelCoefficient>0</BecquerelCoefficient>\n'+
+      '      <BecquerelCoefficientError>0</BecquerelCoefficientError>\n'+
+      '      <HalfLife>'+hl+'</HalfLife>\n'+
+      '      <Intencity>'+inten+'</Intencity>\n'+
+      '      <Note />\n'+
+      '      <ROIPrimitives />\n'+
+      '    </ROIDefinitionData>\n';
+  });
+  s += '  </ROIDefinitions>\n  <ROIEfficiency />\n  <Note />\n</ROIConfigData>';
+  return s;
+}
+// симметричный экспорт: библиотека нуклидов BecqMoni как НАБОР (NuclideSet).
+// Формат NuclideDefinitionFile: секция NuclideDefinitions (записи <Nuclide> c guid-ссылками
+// Sets на наборы) + секция NuclideSets (<NuclideSet> Id/Name/HideUnknownPeaks).
+function newGuid(){
+  return (crypto.randomUUID) ? crypto.randomUUID() :
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,function(c){
+      var r=Math.random()*16|0, v=c==="x"?r:(r&3|8); return v.toString(16);});
+}
+// Линии, уходящие в библиотеку. Профиль «полный набор»: все γ/X-линии выбранных
+// нуклидов, независимо от галок, фильтров и слияния, но без вторичных пиков —
+// escape/сумм-компоненты BecqMoni строит сам, а имя вида «SE (Bi-214)» создало бы
+// ложную цепочку в BR-связке. Обычный профиль — то, что выбрано в таблице.
+function libLines(){
+  if (!$("libFull").checked) return sel.lines.filter(function(L){ return L.sel; });
+  var out = [], eqOn = $("eqScale").checked;
+  Object.keys(sel.nuc).forEach(function(n){
+    var e = DB.nuclides[n], eq = eqOn && EQ_FACTOR[n] ? EQ_FACTOR[n] : 1;
+    var label = nucLabel(n);
+    e.g.forEach(function(li){ out.push({key:"g|"+n+"|"+li[0], nuc:n, label:label,
+      E:li[0], I:+(li[1]*eq).toFixed(4), type:"g", hlY:e.hl_y||1e9}); });
+    e.x.forEach(function(li){ out.push({key:"x|"+n+"|"+li[0]+"|"+li[2], nuc:n, label:withSuffix(label, "X "+li[2]),
+      E:li[0], I:+(li[1]*eq).toFixed(4), type:"x", hlY:e.hl_y||1e9}); });
+  });
+  Object.keys(sel.xrf).forEach(function(el){
+    XRF[el].lines.forEach(function(li){ out.push({key:"xrf|"+el+"|"+li[1], nuc:"ХРИ "+el,
+      label:T("ХРИ ","XRF ")+el+" "+li[0], E:li[1], I:li[2], type:"xrf", hlY:1e9}); });
+  });
+  return out;
+}
+// Якорь: линия, по которой BecqMoni опознаёт набор в спектре. Без единственной
+// IsAnchor=true LibraryPeakFitter не запускается вовсе — поэтому при «авто»
+// берём сильнейшую γ-линию набора.
+function anchorKeyOf(lines){
+  var manual = $("anchorSel").value;
+  if (manual && lines.some(function(L){ return L.key===manual; })) return manual;
+  // Порог 0.2·max считается по ОДНИМ γ-линиям: интенсивности ХРИ условные (Kα1 = 100),
+  // и максимум по всем линиям утопил бы настоящие γ слабого нуклида ниже порога.
+  var mx = 0; lines.forEach(function(L){ if (L.type==="g" && L.I>mx) mx = L.I; });
+  var r = parseFloat($("mR662").value)||7.5;
+  // Хороший якорь — сильная и ОДИНОКАЯ линия: сосед внутри FWHM смещает центроид
+  // найденного пика, и совпадение с табличной энергией перестаёт быть надёжным.
+  // Для ряда Th-232 правило даёт 2614.5 (Tl-208), для Ra-226 — 609.3 (Bi-214).
+  function lonely(L){
+    var w = r/100*Math.sqrt(662*L.E);
+    return !lines.some(function(O){ return O!==L && O.I >= 0.05*mx && Math.abs(O.E-L.E) < w; });
+  }
+  var best = null, bestLonely = null;
+  lines.forEach(function(L){
+    if (L.type!=="g" || L.I < 0.2*mx) return;
+    if (!best || L.I>best.I) best = L;
+    if (lonely(L) && (!bestLonely || L.I>bestLonely.I)) bestLonely = L;
+  });
+  var pick = bestLonely || best;
+  // Фолбэк — только на настоящие линии распада. У ХРИ интенсивность условная, у вторичных
+  // положение — эмпирическая поправка: якорь на таком маркере означал бы, что библиотечный
+  // фит сажает весь набор по нефизической опоре.
+  if (!pick) lines.forEach(function(L){ if (L.type==="x" && (!pick || L.I>pick.I)) pick = L; });
+  return pick ? pick.key : "";
+}
+function fillAnchorSel(){
+  var s = $("anchorSel"), keep = s.value, lines = libLines().slice().sort(function(a,b){ return b.I-a.I; });
+  var auto = anchorKeyOf(lines), autoL = lines.filter(function(L){ return L.key===auto; })[0];
+  s.innerHTML = "";
+  var o0 = document.createElement("option"); o0.value = "";
+  o0.textContent = T("авто — сильнейшая","auto — strongest") +
+    (autoL ? " ("+dispNuc(autoL.label)+" "+autoL.E.toFixed(1)+")" : "");
+  s.appendChild(o0);
+  lines.slice(0, 40).forEach(function(L){
+    var o = document.createElement("option"); o.value = L.key;
+    o.textContent = dispNuc(L.label)+" — "+L.E.toFixed(1)+T(" кэВ, I "," keV, I ")+L.I+" %";
+    s.appendChild(o);
+  });
+  s.value = lines.some(function(L){ return L.key===keep; }) ? keep : "";
+}
+function nuclideEntries(setGuid){
+  var lines = libLines().slice();
+  var anchor = anchorKeyOf(lines);
+  lines.sort(function(a,b){ return a.E-b.E; });
+  return lines.map(function(L){
+    // конвенция файла-образца: у нераспадных записей (ХРИ, вторичные) HalfLife = 0
+    var hl = (L.type==="xrf"||L.type==="sec") ? 0 : (L.hlY && isFinite(L.hlY) ? L.hlY : 0);
+    return '    <Nuclide>\n'+
+      '      <Name>'+esc(L.label)+'</Name>\n'+
+      '      <Energy>'+L.E+'</Energy>\n'+
+      '      <HalfLife>'+hl+'</HalfLife>\n'+
+      '      <NuclideColor>'+lineColor(L).toUpperCase()+'</NuclideColor>\n'+
+      '      <Note />\n'+
+      '      <Visible>true</Visible>\n'+
+      '      <Intencity>'+L.I+'</Intencity>\n'+
+      '      <Sets>\n        <guid>'+setGuid+'</guid>\n      </Sets>\n'+
+      '      <IsAnchor>'+(L.key===anchor ? "true" : "false")+'</IsAnchor>\n'+
+      '    </Nuclide>\n';
+  }).join("");
+}
+function setEntry(setGuid){
+  return '    <NuclideSet>\n'+
+    '      <Id>'+setGuid+'</Id>\n'+
+    '      <Name>'+esc($("libName").value||"NuclideSet")+'</Name>\n'+
+    '      <HideUnknownPeaks>false</HideUnknownPeaks>\n'+
+    '    </NuclideSet>\n';
+}
+function toNuclideXml(){
+  var g = newGuid();
+  return '<?xml version="1.0"?>\n'+
+    '<NuclideDefinitionFile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'+
+    '  <NuclideDefinitions>\n'+ nuclideEntries(g) +
+    '  </NuclideDefinitions>\n'+
+    '  <NuclideSets>\n'+ setEntry(g) +
+    '  </NuclideSets>\n</NuclideDefinitionFile>';
+}
+// дописывание набора в существующий NuclideDefinition.xml пользователя:
+// нуклиды добавляются в NuclideDefinitions со ссылкой на новый NuclideSet,
+// сам набор — в секцию NuclideSets; всё, что было в файле, сохраняется.
+function appendSetToXml(existingText){
+  var doc = new DOMParser().parseFromString(existingText, "application/xml");
+  if (doc.querySelector("parsererror") || doc.documentElement.nodeName !== "NuclideDefinitionFile")
+    throw new Error(T("Это не файл NuclideDefinition.xml (нет корня NuclideDefinitionFile).",
+                      "Not a NuclideDefinition.xml file (no NuclideDefinitionFile root)."));
+  var nm = ($("libName").value||"").trim();
+  var dup = Array.prototype.slice.call(doc.querySelectorAll("NuclideSets > NuclideSet"))
+    .some(function(s){ var n = s.querySelector("Name"); return n && n.textContent.trim()===nm; });
+  if (dup && !confirm(T("Набор «"+nm+"» в файле уже есть. Добавить ещё один с тем же именем?",
+                        "A set named “"+nm+"” already exists in the file. Add another one with the same name?")))
+    return null;
+  var g = newGuid();
+  function appendFrag(parent, xmlStr, indent){
+    // хвостовой отступ закрывающего тега уже есть в файле — переиспользуем его
+    var tail = parent.lastChild;
+    if (tail && tail.nodeType===3 && !tail.nodeValue.trim()) parent.removeChild(tail);
+    var frag = new DOMParser().parseFromString("<R>"+xmlStr+"</R>", "application/xml");
+    Array.prototype.slice.call(frag.documentElement.children).forEach(function(n){
+      parent.appendChild(doc.createTextNode("\n"+indent));
+      parent.appendChild(doc.importNode(n, true));
+    });
+    parent.appendChild(doc.createTextNode("\n  "));
+  }
+  var defs = doc.querySelector("NuclideDefinitions");
+  if (!defs){
+    defs = doc.createElement("NuclideDefinitions");
+    doc.documentElement.appendChild(doc.createTextNode("\n  "));
+    doc.documentElement.appendChild(defs);
+  }
+  appendFrag(defs, nuclideEntries(g), "    ");
+  var setsEl = doc.querySelector("NuclideSets");
+  if (!setsEl){
+    setsEl = doc.createElement("NuclideSets");
+    doc.documentElement.appendChild(doc.createTextNode("\n  "));
+    doc.documentElement.appendChild(setsEl);
+    doc.documentElement.appendChild(doc.createTextNode("\n"));
+  }
+  appendFrag(setsEl, setEntry(g), "    ");
+  return '<?xml version="1.0"?>\n'+new XMLSerializer().serializeToString(doc.documentElement)+"\n";
+}
+function renderExpStat(){
+  var n = sel.lines.filter(function(L){return L.sel;}).length;
+  fillAnchorSel();
+  var lib = libLines().length;
+  var s = T("ROI к экспорту: ","ROI to export: ")+"<b>"+n+"</b>"+
+          T("; в набор: ","; into the set: ")+"<b>"+lib+"</b>";
+  // веса BR-групп берутся из Intencity, поэтому набору нужны равновесные интенсивности
+  if ($("libFull").checked && !$("eqScale").checked && Object.keys(sel.nuc).some(function(n){ return EQ_FACTOR[n]; }))
+    s += ' <span class="warn">'+T("⚠ для набора включите «Равновесие ряда»","⚠ enable “Series equilibrium” for the set")+'</span>';
+  $("expStat").innerHTML = s;
+}
+
+// ── события ──
+// «?» в строке контролов — всплывающее окно: раскрытый текст висит над содержимым
+// (оформление в теме), поэтому закрывать его надо руками — кликом мимо или Esc
+function closeDocPops(except){
+  document.querySelectorAll(".line > details.doc[open]").forEach(function(d){
+    if (d!==except) d.open = false;
+  });
+}
+document.addEventListener("keydown", function(ev){
+  if (ev.key==="Escape"){ closeDocPops(null); $("famInfoBox").style.display = "none"; }
+});
+document.addEventListener("click", function(ev){
+  var t = ev.target;
+  // словарик закрывается кликом мимо него
+  if (!t.closest || (!t.closest("#famInfoBox") && !t.closest("#famInfoBtn")))
+    $("famInfoBox").style.display = "none";
+  if (t.closest) closeDocPops(t.closest(".line > details.doc"));
+  if (t.classList.contains("grpAdd")){
+    addGroup(t.dataset.mode);
+    buildSelectors(); rebuildLines(); renderTable(); return;
+  }
+  if (t.dataset && t.dataset.el){ // ХРИ chip
+    if (sel.xrf[t.dataset.el]) delete sel.xrf[t.dataset.el]; else sel.xrf[t.dataset.el] = true;
+    buildSelectors(); rebuildLines(); renderTable(); return;
+  }
+  if (t.dataset && t.dataset.nearadd){
+    var v = t.dataset.nearadd;
+    if (v.indexOf("xrf:")===0) sel.xrf[v.slice(4)] = true; else addNuc(v);
+    buildSelectors(); rebuildLines(); renderTable(); searchNear(); return;
+  }
+  if (t.dataset && t.dataset.preset !== undefined){
+    PRESETS[+t.dataset.preset].run();
+    // готовый набор сразу с рабочим порогом, иначе в таблице сотни линий шума
+    $("fIOn").checked = true; $("fMinI").value = 3; $("iMode").value = "rel";
+    buildSelectors(); rebuildLines(); applyFilterSelection(); renderTable(); return;
+  }
+  var pick = t.closest && t.closest("[data-pick]");
+  if (pick){ addNuc(pick.dataset.pick); buildSelectors(); rebuildLines(); renderTable(); return; }
+  if (t.dataset && t.dataset.del){ delNuc(t.dataset.del); buildSelectors(); rebuildLines(); renderTable(); return; }
+  if (t.dataset && t.dataset.delx){ delete sel.xrf[t.dataset.delx]; buildSelectors(); rebuildLines(); renderTable(); return; }
+});
+document.addEventListener("change", function(ev){
+  var t = ev.target;
+  if (t.dataset && t.dataset.nuc){
+    if (t.checked) addNuc(t.dataset.nuc); else delNuc(t.dataset.nuc);
+    // от набора отмеченных зависит, к чему применятся «+ линии семейства» и «+ цепочка»
+    renderGroupButtons();
+    rebuildLines(); renderTable(); renderSelBar(); return;
+  }
+  if (t.dataset && t.dataset.xrf){
+    if (t.checked) sel.xrf[t.dataset.xrf] = true; else delete sel.xrf[t.dataset.xrf];
+    rebuildLines(); renderTable(); renderSelBar(); return;
+  }
+  if (t.dataset && t.dataset.key){
+    sel.lines.forEach(function(L){ if (L.key===t.dataset.key) L.sel = t.checked; });
+    renderTable(); return;
+  }
+  if (t.dataset && t.dataset.owner){ colors[t.dataset.owner] = t.value; return; }
+});
+function onFilterChange(){ applyFilterSelection(); renderTable(); }
+["fMinI","fEmin","fEmax","fTmin","fTmax"].forEach(function(id){ $(id).addEventListener("input", onFilterChange); });
+["fIOn","fEOn","fTOn","fTminU","fTmaxU","iMode"].forEach(function(id){ $(id).addEventListener("change", onFilterChange); });
+$("hideUnsel").addEventListener("change", renderTable);
+document.querySelectorAll(".fT").forEach(function(c){ c.addEventListener("change", renderTable); });
+$("famSel").addEventListener("change", renderGroup);
+$("famInfoBtn").addEventListener("click", function(){ showFamInfo(false); });
+$("nucSearch").addEventListener("input", renderSource);
+// вкладки шагов и переключатель источника
+$("tabs").addEventListener("click", function(ev){
+  var b = ev.target.closest("button[data-tab]"); if (!b) return;
+  document.querySelectorAll(".tabs button").forEach(function(x){ x.classList.toggle("on", x===b); });
+  document.querySelectorAll(".tabbody").forEach(function(x){
+    x.classList.toggle("on", x.dataset.body===b.dataset.tab); });
+  renderSum();
+});
+var NSTEP = 4;
+function goTab(n){
+  n = Math.max(1, Math.min(NSTEP, n));
+  document.querySelector('.tabs button[data-tab="'+n+'"]').click();
+}
+// кнопки внизу подписываются соседними шагами, как в окне хоста
+var STEPNAME = [["Изотопы","Nuclides"],["Цепочки","Chains"],["Линии","Lines"],
+                ["Оформление и экспорт","Styling and export"]];
+function updSteps(){
+  var cur = +(document.querySelector(".tabs button.on")||{dataset:{tab:"1"}}).dataset.tab;
+  var p = $("stepPrev"), n = $("stepNext");
+  p.textContent = cur>1 ? "◂ "+T(STEPNAME[cur-2][0],STEPNAME[cur-2][1]) : T("◂ Назад","◂ Back");
+  p.disabled = cur<=1;
+  n.textContent = cur<NSTEP ? T(STEPNAME[cur][0],STEPNAME[cur][1])+" ▸" : T("Вперёд ▸","Next ▸");
+  n.disabled = cur>=NSTEP;
+}
+$("stepPrev").addEventListener("click", function(){
+  goTab(+document.querySelector(".tabs button.on").dataset.tab - 1); });
+$("stepNext").addEventListener("click", function(){
+  goTab(+document.querySelector(".tabs button.on").dataset.tab + 1); });
+$("eqScale").addEventListener("change", function(){ rebuildLines(); renderTable(); });
+$("libFull").addEventListener("change", function(){ $("anchorSel").value = ""; renderExpStat(); });
+$("anchorSel").addEventListener("change", renderExpStat);
+// имя из поля поиска: точное совпадение либо единственный результат живого поиска
+function searchPick(){
+  var v = $("nucSearch").value.trim();
+  if (DB.nuclides[v]) return v;
+  var hits = $("searchList").querySelectorAll("[data-pick]");
+  return (v && hits.length===1) ? hits[0].dataset.pick : v;
+}
+$("nucAdd").addEventListener("click", function(){
+  var n = searchPick();
+  if (DB.nuclides[n]){ addNuc(n); $("nucSearch").value=""; buildSelectors(); rebuildLines(); renderTable(); }
+  else alert(T("Нуклид «"+n+"» не найден в базе. Добавьте его в каталог update_nuclides.py и перегенерируйте.",
+               "Nuclide “"+n+"” is not in the database. Add it to the CAT catalog in update_nuclides.py and regenerate."));
+});
+// дочерние нуклида: хвост ЕРН-ряда либо пары из DAUGHTERS
+function daughtersOf(n){
+  var e = DB.nuclides[n];
+  if (e.chain){
+    var ord = DB.chains[e.chain].order, i0 = ord.indexOf(n);
+    return ord.slice(i0+1);
+  }
+  return (DAUGHTERS[n]||[]).filter(function(d){ return !!DB.nuclides[d]; });
+}
+// «одним» — линии дочерних под именем родителя (attr); «цепочкой» — каждый
+// дочерний своим именем с пометкой родителя в скобках (par)
+function addWithDaughters(asChain){
+  var n = searchPick();
+  if (!DB.nuclides[n]){ alert(T("Нуклид «"+n+"» не найден в базе.","Nuclide “"+n+"” is not in the database.")); return; }
+  addNuc(n); delete sel.attr[n]; delete sel.par[n];
+  var added = [n];
+  daughtersOf(n).forEach(function(d){
+    if (!hasLines(d)) return;
+    addNuc(d); added.push(d); delete sel.root[d];
+    if (asChain){ sel.par[d] = n; delete sel.attr[d]; }
+    else { sel.attr[d] = n; delete sel.par[d]; }
+  });
+  if (asChain && added.length>1) sel.root[n] = true;   // родитель — без чужой скобки
+  $("nucSearch").value="";
+  buildSelectors(); rebuildLines(); renderTable();
+  if (added.length===1) alert(T("У «"+n+"» нет дочерних с линиями в базе — добавлен только он сам.",
+    "“"+n+"” has no daughters with lines in the database — only itself was added."));
+}
+$("nucAddF").addEventListener("click", function(){ addWithDaughters(false); });
+$("nucAddC").addEventListener("click", function(){ addWithDaughters(true); });
+// та же тройка для группы из комбобокса: all — каждый сам по себе;
+// one — дочерние линиями под именем родителя; chain — дочерние с пометкой родителя
+// Отмеченные галочкой члены текущей группы. Галочка — это и есть выбор цели:
+// «взял ЕРН, отметил Th-232, нажал цепочку» должно дать цепочку Th-232, а не
+// раскрыть всё семейство.
+function groupPicked(){
+  var v = $("famSel").value, kind = v.slice(0,1), id = v.slice(2);
+  return (kind==="c" ? DB.chains[id].order : famNucs(id))
+    .filter(hasLines).filter(function(n){ return sel.nuc[n]; });
+}
+// Раскрыть один нуклид: дочерние линиями под его именем (one) либо отдельными
+// нуклидами с пометкой родителя в скобках (chain). Возвращает число добавленных.
+function expandOne(n, mode){
+  addNuc(n); delete sel.attr[n]; delete sel.par[n];
+  var count = 0;
+  daughtersOf(n).forEach(function(d){
+    if (!hasLines(d)) return;
+    addNuc(d); count++; delete sel.root[d];
+    if (mode==="chain"){ sel.par[d] = n; delete sel.attr[d]; }
+    else { sel.attr[d] = n; delete sel.par[d]; }
+  });
+  if (mode==="chain" && count) sel.root[n] = true;   // родитель — без чужой скобки
+  else if (mode==="one") delete sel.root[n];
+  return count;
+}
+function addGroup(mode){
+  var v = $("famSel").value, kind = v.slice(0,1), id = v.slice(2);
+  var members = (kind==="c" ? DB.chains[id].order : famNucs(id)).filter(hasLines);
+  // «добавить все» — всегда про группу целиком; раскрытие — про отмеченные,
+  // а если не отмечено ничего, то про всю группу, как раньше
+  var picked = groupPicked();
+  if (mode!=="all" && picked.length){
+    picked.forEach(function(n){ expandOne(n, mode); });
+    return;
+  }
+  if (kind==="c" && mode==="one"){
+    var root = chainRootName(id);
+    members.forEach(function(n){ addNuc(n); sel.attr[n] = root; delete sel.par[n]; delete sel.root[n]; });
+    delete sel.attr[root]; sel.root[root] = true;    // корень ряда — своим именем
+    return;
+  }
+  members.forEach(function(n){ addNuc(n); delete sel.attr[n]; delete sel.par[n]; delete sel.root[n]; });
+  if (kind==="c" || mode==="all") return;            // ряд «все»/«цепочкой» — имена уже из ряда
+  members.forEach(function(n){                       // семейство: раскрыть дочерних каждого члена
+    // Члена ЕРН-ряда раскрывать нельзя: его дочерние — это остаток того же ряда,
+    // и пометка «(предшественник)» подменяет собой корень. На семействе NORM,
+    // куда входят все члены трёх рядов, каждый нуклид переписывал родителя
+    // следующему, и вместо трёх цепочек набор распадался на 29 — BR-связка
+    // в BecqMoni не собиралась ни по одной. Родитель члена ряда и так известен
+    // из базы (nucLabel), трогать его не нужно.
+    if (DB.nuclides[n].chain) return;
+    var ds = daughtersOf(n).filter(hasLines);
+    if (!ds.length) return;
+    ds.forEach(function(d){
+      addNuc(d); delete sel.root[d];
+      if (mode==="one"){ sel.attr[d] = n; delete sel.par[d]; }
+      else { sel.par[d] = n; delete sel.attr[d]; }
+    });
+    if (mode==="chain") sel.root[n] = true;           // родитель — без чужой скобки
+  });
+}
+$("mergeBtn").addEventListener("click", mergeAllLines);
+$("unmergeBtn").addEventListener("click", unmergeAll);
+// разрешение детектора — одно значение на всю страницу (у слияния и в блоке 3).
+// Порог слияния (mK) и ширина ROI-зоны (kF) больше НЕ связаны: 0.85·FWHM — предел
+// разрешимости, а зона такой ширины срезала бы сам пик.
+$("mR662").addEventListener("input", function(){ $("r662").value = this.value; updMergeHint(); });
+$("r662").addEventListener("input", function(){ $("mR662").value = this.value; updMergeHint(); });
+$("mK").addEventListener("input", updMergeHint);
+// пресеты критерия: значения — из LibraryPeakFitter BecqMoni (SparrowFwhm 0.85,
+// ClaimToleranceFwhm 0.25); диапазон якорного режима 0.2–0.3 — по рекомендации
+var M_PRESET = {sparrow:{k:0.85, min:0.05, max:10, step:0.05, fixed:true},
+                anchor: {k:0.25, min:0.2,  max:0.3, step:0.01, fixed:false},
+                manual: {k:3,    min:0.05, max:10,  step:0.5,  fixed:false}};
+function applyMergeMode(){
+  var p = M_PRESET[$("mMode").value] || M_PRESET.manual, f = $("mK");
+  f.value = p.k; f.min = p.min; f.max = p.max; f.step = p.step;
+  f.readOnly = !!p.fixed; f.style.opacity = p.fixed ? .6 : 1;
+  updMergeHint();
+}
+$("mMode").addEventListener("change", applyMergeMode);
+// живой пример: порог слияния в кэВ при текущих R и k
+function updMergeHint(){
+  var r = parseFloat($("mR662").value)||7.5, k = parseFloat($("mK").value)||0.85;
+  var mode = $("mMode") ? $("mMode").value : "sparrow";
+  var name = mode==="sparrow" ? T("Sparrow","Sparrow")
+           : mode==="anchor" ? T("Якорный набор","Anchored set") : T("Вручную","Manual");
+  function w(E){ return k*r/100*Math.sqrt(662*E); }
+  function f(E){ return fmtSci(w(E)<10 ? w(E).toFixed(1) : String(Math.round(w(E)))); }
+  var merged = sel.merged.length;
+  $("mergeHint").innerHTML = "<b>"+name+" (R = "+fmtSci(String(r))+" %, "+
+    T("порог ","threshold ")+fmtSci(String(k))+"·FWHM):</b> "+
+    (merged ? T("слито групп ","merged groups ")+merged+" · " : "")+
+    T("сливаются линии ближе ","lines merge closer than ")+
+    f(100)+T(" кэВ на 100"," keV at 100")+", "+f(662)+T(" на 662"," at 662")+", "+
+    f(1500)+T(" на 1500"," at 1500")+".";
+}
+applyMergeMode();
+$("clearAll").addEventListener("click", function(){
+  sel.nuc = {}; sel.xrf = {}; sel.secLines = []; sel.merged = []; sel.suppressed = {};
+  sel.attr = {}; sel.par = {}; sel.root = {};
+  buildSelectors(); rebuildLines(); renderTable();
+});
+$("selVisible").addEventListener("click", function(){ visibleLines().forEach(function(L){L.sel=true;}); renderTable(); });
+$("unselVisible").addEventListener("click", function(){ visibleLines().forEach(function(L){L.sel=false;}); renderTable(); });
+$("selTop").addEventListener("click", function(){
+  var N = parseInt($("topN").value)||5, by = {};
+  sel.lines.forEach(function(L){ if(L.type==="g"||L.type==="x"){ (by[L.nuc]=by[L.nuc]||[]).push(L);} });
+  Object.keys(by).forEach(function(n){
+    by[n].sort(function(a,b){return b.I-a.I;});
+    by[n].forEach(function(L,i){ L.sel = i<N; });
+  });
+  renderTable();
+});
+$("genSec").addEventListener("click", genSecondaries);
+$("nearBtn").addEventListener("click", searchNear);
+$("lineTbl").querySelector("thead").addEventListener("click", function(ev){
+  var th = ev.target.closest("th"); if (!th) return;
+  var k = th.dataset.k;
+  if (sortK===k) sortDir = -sortDir; else { sortK = k; sortDir = 1; }
+  renderTable();
+});
+$("roiMode").addEventListener("change", function(){
+  var z = $("roiMode").value!=="marker";
+  $("wModeBox").style.display = z?"":"none";
+  $("wHint").style.display = z?"":"none";
+  syncWMode();
+});
+function syncWMode(){
+  var z = $("roiMode").value!=="marker";
+  $("pctBox").style.display  = z && $("wMode").value==="pct"  ? "" : "none";
+  $("fwhmBox").style.display = z && $("wMode").value==="fwhm" ? "" : "none";
+}
+$("wMode").addEventListener("change", syncWMode);
+$("colByChain").addEventListener("click", function(){ colorMode="chain"; colors={}; renderColors(); });
+$("colByNuc").addEventListener("click", function(){ colorMode="nuc"; colors={}; renderColors(); });
+$("btnPreview").addEventListener("click", function(){
+  var p = $("xmlPrev"); p.style.display = "";
+  var roi = checkIssues("roi"), lib = checkIssues("lib");
+  var head = roi.warn.length ? T("ПРОВЕРКА ДАННЫХ:\n⚠ ","DATA CHECK:\n⚠ ")+roi.warn.join("\n⚠ ")+"\n"
+                             : T("Проверка данных: замечаний нет.\n","Data check: no issues.\n");
+  if (lib.err.length) head += T("\nДля набора в библиотеку это ошибки (","For the library set these are errors (")+
+    lib.err.length+"):\n✖ "+lib.err.join("\n✖ ")+"\n";
+  p.textContent = head + "\n" + toXml();
+});
+$("btnXml").addEventListener("click", function(){
+  if (!passIssues("roi")) return;
+  var xml = toXml();
+  var blob = new Blob([xml], {type:"application/xml;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = ($("cfgName").value||"IAEA lines")+".xml";
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast(T("ROI-конфигурация сохранена — положите её в ","ROI configuration saved — put it into ")+
+        "<code>%APPDATA%\\BecqMoni\\config\\ROI\\</code>", "%APPDATA%\\BecqMoni\\config\\ROI\\");
+});
+$("btnNucXml").addEventListener("click", function(){
+  if (!passIssues("lib")) return;
+  $("mergeFile").click();          // выбрать свой NuclideDefinition.xml
+});
+$("mergeFile").addEventListener("change", function(){
+  var f = this.files[0]; this.value = "";
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function(){
+    var xml;
+    try { xml = appendSetToXml(rd.result); }
+    catch(e){ alert(e.message); return; }
+    if (xml === null) return;                       // отменено пользователем
+    function save(text, name){
+      var blob = new Blob([text], {type:"application/xml;charset=utf-8"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    // Изменённый файл скачивается ПЕРВЫМ. Браузер разрешает автоматически сохранить
+    // только один файл, а на второй спрашивает разрешение — и если оно не дано, теряется
+    // именно второй. Когда первой шла копия оригинала, у пользователя на руках
+    // оставался файл, идентичный исходному: «набор не дописался».
+    save(xml, f.name || "NuclideDefinition.xml");
+    var base = (f.name||"NuclideDefinition.xml").replace(/\.xml$/i,"");
+    var bak = "";
+    if ($("bakOrig").checked){
+      var d = new Date(), p = function(x){ return (x<10?"0":"")+x; };
+      bak = base+".backup-"+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+
+            "-"+p(d.getHours())+p(d.getMinutes())+".xml";
+      setTimeout(function(){ save(rd.result, bak); }, 400);
+    }
+    var n = libLines().length;
+    alert(T("Набор «"+($("libName").value||"")+"» ("+n+" линий) дописан.\nСкачан файл «"+
+            (f.name || "NuclideDefinition.xml")+"» — замените им "+
+            "%APPDATA%\\BecqMoni\\config\\NuclideDefinition.xml (BecqMoni при этом должен быть закрыт)."+
+            (bak ? "\n\nВторым файлом идёт копия оригинала ("+bak+
+                   "). Если браузер спросит разрешение сохранить несколько файлов — разрешите." : ""),
+            "Set “"+($("libName").value||"")+"” ("+n+" lines) appended.\nDownloaded “"+
+            (f.name || "NuclideDefinition.xml")+"” — replace "+
+            "%APPDATA%\\BecqMoni\\config\\NuclideDefinition.xml with it (close BecqMoni first)."+
+            (bak ? "\n\nA copy of the original follows as a second file ("+bak+
+                   "). Allow multiple downloads if the browser asks." : "")));
+  };
+  rd.readAsText(f);
+});
+// переключателя темы нет: панель наследует оформление хоста
+
+// ── i18n: статические тексты ──
+var RU2EN = {
+  "Конструктор ROI и наборов нуклидов":"ROI and nuclide set builder",
+  "Изотопы, семейства, цепочки":"Nuclides, families, chains",
+  "1 · Источники":"1 · Sources","2 · Цепочки":"2 · Chains","3 · Линии":"3 · Lines",
+  "4 · Оформление и экспорт":"4 · Styling and export","Ряды распада":"Decay series",
+  "Кто светит на этой энергии":"Who emits at this energy","Найти":"Find",
+  "интенсивность на распад корня ряда":"intensity per decay of the series root",
+  "Таблица эмиссий ряда":"Series emission table","ряд":"series","Показать":"Show",
+  "Скачать CSV":"Download CSV","сортировать по интенсивности":"sort by intensity",
+  "кэВ":"keV",
+  "Готовые наборы":"Presets","Поиск":"Search",
+  "Группы и ряды":"Groups and series","Очистить":"Clear",
+  "Разрешение R, % @662":"Resolution R, % @662","Критерий неразделимости":"Inseparability criterion",
+  "Sparrow — маркеры ROI":"Sparrow — ROI markers","якорный набор — библиотечный фит":"anchored set — library fit",
+  "Sparrow: ближе 0,85·FWHM дублет неразрешим — для маркеров сливаем.":
+    "Sparrow: closer than 0.85·FWHM a doublet is unresolvable — merged for markers.",
+  "подробнее о разрешении и критериях":"more on resolution and criteria",
+  "что делает пересчёт":"what the rescaling does",
+  "куда класть файлы и как работает якорь":"where the files go and how the anchor works",
+  "об источниках данных":"about the data sources",
+  "равновесие ряда: интенсивности на распад":"series equilibrium: intensities per decay of the",
+  "родителя":"parent","Имя ROI-конфигурации":"ROI configuration name",
+  "Набор нуклидов для библиотеки":"Nuclide set for the library",
+  "Дописать в библиотеку…":"Append to the library…","Цвета":"Colors",
+  "по цепочке":"by chain","по нуклиду":"by nuclide",
+  "Набор на энергетической оси":"The set on the energy axis",
+  "Изотоп ⇅":"Nuclide ⇅","Энергия, кэВ ⇅":"Energy, keV ⇅",
+  "Поиск изотопа":"Nuclide search","Группа":"Group","Добавить":"Add",
+  "+ линии семейства":"+ family lines","+ цепочкой":"+ as chain",
+  "+ семейство":"+ family","+ цепочка":"+ chain",
+  "ХРИ — элементы":"XRF — elements","Выбрано":"Selected","Очистить всё":"Clear all",
+  "Семейства":"Families","Цепочки распада (ЕРН)":"Decay chains (NORM)",
+  "Линии":"Lines","Адаптация под разрешение детектора (IDWin):":"Detector-resolution adaptation (IDWin):",
+  "% на 662 кэВ, критерий":"% at 662 keV, criterion",
+  "предел Sparrow — маркеры ROI":"Sparrow limit — ROI markers",
+  "якорный набор — библиотечный фит":"anchored set — library fit","вручную":"manual",
+  "Объединить близкие":"Merge close lines",
+  "Вернуть исходные":"Restore originals","Фильтры:":"Filters:",
+  "интенсивность ≥, %":"intensity ≥, %","энергия от — до, кэВ":"energy from — to, keV",
+  "Тип линий":"Line types","X (распад)":"X (decay)","ХРИ":"XRF","вторичные":"secondary",
+  "T½ от — до":"T½ from — to",
+  "Сортировка":"Sorting","энергия ↑":"energy ↑","энергия ↓":"energy ↓",
+  "интенсивность ↓":"intensity ↓","интенсивность ↑":"intensity ↑",
+  "период полураспада ↓":"half-life ↓","период полураспада ↑":"half-life ↑",
+  "нуклид (А–Я)":"nuclide (A–Z)",
+  "относительная (внутри изотопа, макс = 100)":"relative (within nuclide, max = 100)",
+  "абсолютная (на распад)":"absolute (per decay)",
+  "Выбор и отображение:":"Selection & display:",
+  "✓ выбрать все видимые":"✓ select all visible","✗ снять все видимые":"✗ deselect all visible",
+  "топ-N по I на нуклид:":"top-N by I per nuclide:","Выбрать топ-N":"Select top-N",
+  "скрыть невыбранные":"hide unselected","Равновесие ряда":"Series equilibrium",
+  "пересчитать интенсивности на один распад":"recalculate intensities per one decay of the",
+  "родителя ряда":"series parent","(вековое равновесие)":"(secular equilibrium)",
+  "Вторичные пики (расчёт по выбранным γ-линиям)":"Secondary peaks (computed from selected γ lines)",
+  "Для γ-линий с I ≥, %":"For γ lines with I ≥, %","Типы":"Types",
+  "рассеяние назад (BS)":"backscatter (BS)","комптон-край (CE)":"Compton edge (CE)",
+  "вылет 511 (SE)":"single escape 511 (SE)","вылет 1022 (DE)":"double escape 1022 (DE)",
+  "вылет I-K (NaI, −28.6)":"I-K escape (NaI, −28.6)","аннигиляция 511":"annihilation 511",
+  "суммирование каскадное (E1+E2)":"cascade summing (E1+E2)","наложение 2×E (pile-up)":"pile-up 2×E",
+  "Сгенерировать":"Generate",
+  "Поиск близких линий (по всей базе — кто ещё светит рядом)":"Nearby-line search (whole database — who else emits here)",
+  "Энергия линии, кэВ":"Line energy, keV","Окно идент., ± кэВ":"ID window, ± keV",
+  "Искать":"Search","сек":"s","ч":"h","сут":"d","лет":"y",
+  "Нуклид ⇅":"Nuclide ⇅","E, кэВ ⇅":"E, keV ⇅","I отн., % ⇅":"I rel., % ⇅","Тип":"Type",
+  "Оформление ROI":"ROI styling","Режим":"Mode",
+  "линии-маркеры (высота ∝ I, без зон)":"marker lines (height ∝ I, no zones)",
+  "зоны (границы вокруг пика)":"zones (limits around the peak)",
+  "зоны + маркеры интенсивности":"zones + intensity markers",
+  "Ширина зоны":"Zone width","% от энергии (как в BecqMoni)":"% of energy (BecqMoni style)",
+  "k × FWHM (сцинтиллятор)":"k × FWHM (scintillator)","Ширина, % от E":"Width, % of E",
+  "R на 662 кэВ, % / множитель k":"R at 662 keV, % / factor k","Цвета":"Colors",
+  "По цепочке/семейству":"By chain/family","Каждому нуклиду свой":"Per nuclide",
+  "Экспорт":"Export","Имя конфигурации":"Configuration name","Скачать ROI .xml":"Download ROI .xml",
+  "Имя набора (NuclideSet)":"Set name (NuclideSet)","Якорная линия":"Anchor line",
+  "полный набор (все линии, для фита)":"full set (all lines, for fitting)",
+  "Дописать набор в NuclideDefinition.xml…":"Append set to NuclideDefinition.xml…",
+  "сохранить копию оригинала":"save a backup of the original",
+  "Предпросмотр":"Preview","Справка":"Help",
+  "Справка: конструктор ROI и наборов нуклидов":"Help: ROI and nuclide set builder",
+  // подписи, добавленные при слиянии панелей и шагов 25.07
+  "Конструктор ROI и наборов нуклидов —":"ROI and nuclide set builder —",
+  "1 · Изотопы":"1 · Nuclides",
+  "Выбрано:":"Selected:","очистить всё":"clear all",
+  "Адаптация под разрешение детектора (IDWin)":"Detector-resolution adaptation (IDWin)",
+  "% на 662 кэВ":"% at 662 keV","критерий":"criterion",
+  "FWHM(E) = R·√(662·E)/100 · сцинтиллятор":"FWHM(E) = R·√(662·E)/100 · scintillator",
+  "Фильтры и выбор":"Filters and selection",
+  "энергия, кэВ":"energy, keV","топ-N по I на нуклид":"top-N by I per nuclide",
+  "равновесие ряда: интенсивности на один распад":"series equilibrium: intensities per one decay of the",
+  "Tl-208 ×0,3594 · Po-212 ×0,6406 · остальные члены ряда ×1":
+    "Tl-208 ×0.3594 · Po-212 ×0.6406 · other series members ×1",
+  "сортировка — клик по заголовку таблицы":"sorting — click a table header",
+  "для γ-линий с I ≥, %":"for γ lines with I ≥, %","формулы":"formulas",
+  "± окно":"± window","режим":"mode","ширина зоны":"zone width","% от E":"% of E",
+  "цвета":"colors","имя ROI-конфигурации":"ROI configuration name",
+  "имя набора (NuclideSet)":"set name (NuclideSet)","якорная линия":"anchor line"
+};
+var PARA_EN = {
+  sub0:'ROI configurations and nuclide libraries from IAEA nuclear data',
+  sub1:'Gamma and X-ray lines from an IAEA Live Chart (ENSDF) snapshot → pick nuclides/families/chains → styling → export <code>.xml</code> in BecqMoni format (FormatVersion 120920).',
+  chainHint:'Chain members with no γ/X lines above the database threshold are greyed out.',
+  searchHint:'Typing narrows the list: match by name or by family code. Click a row to add the nuclide.',
+  xrfHint:'Kα/Kβ (+L for heavy elements). Intensities are relative (Kα1=100) — markers only.',
+  resHint:'<p><b>R</b> — detector resolution (FWHM at 662 keV): NaI(Tl) 6.5–8 %, CsI(Tl) 8–10 %, SrI₂(Eu) 3–3.5 %, LaBr₃ 2.7–3.3 %. Peaks broaden as √E: FWHM(E) = R·√(662·E)/100 — a <b>scintillator</b> model (LaBr₃/NaI/SrI₂/CsI); for HPGe (R ~0.15 %) it underestimates the width at low energies — a √(a+bE) law would be needed (not implemented here). </p><p><b>Criterion</b> — how close lines have to be to count as inseparable. <b>Sparrow limit</b> (ΔE &lt; 0.85·FWHM, i.e. 2σ) is the physical resolvability limit of two peaks: closer than that a doublet looks like a single peak, so ROI markers are merged. </p><p><b>Anchored set</b> (ΔE &lt; 0.25·FWHM) is for sets exported into the BecqMoni library: pairs between 0.25 and 0.85 FWHM are resolved there by the library fit around the anchor line (amplitudes tied by tabulated intensities), wider ones by deconvolution — merging them only impoverishes the set. </p><p><b>Manual</b> — the previous behaviour (2–3×FWHM is a coarse identification window).</p>',
+  eqHint:'<p>Unchecked: I is “per 100 decays of the emitting nuclide”, as in the IAEA database and BecqMoni “Intensities” files: the Tl-208 2614 keV line has I = 99.75 %. But in the equilibrium Th-232 series only 35.94 % of decays pass through Tl-208 (Bi-212 branching: β 64 % / α 36 %), so <b>per one Th-232 decay</b> this line yields 99.75 × 0.3594 ≈ 35.85 %. </p><p>The checkbox applies this factor to members behind branch points (Tl-208 ×0.3594, Po-212 ×0.6406; in the U-235 series: Th-227 ×0.9862, Fr-223 ×0.0138, Tl-207 ×0.99724, Po-211 ×0.00276); all other members — ×1.</p><p>Enable when the ROI set describes an equilibrium series as a whole; disable for handbook values.</p>',
+  secHint:'<p>BS = E/(1+2E/511); CE = E−BS; SE = E−511 (E&gt;1122); DE = E−1022 (E&gt;1222); I-escape for E&lt;200 keV. </p><p><b>SUM</b> = E1+E2 — true-coincidence summing of cascade lines of one nuclide (close geometry: Co-60 → 2505, Y-88 → 2734); <b>PU</b> = 2×E — pulse pile-up of one strong line at high count rate (Cs-137 → 1324). </p><p></p><p><b>Position corrections.</b> The analytical formula gives the edge of a step, while the spectrum shows the centroid of a feature smeared by the resolution, so the Compton edge is shifted down by <b>0.8·FWHM</b> and the backscatter peak up by <b>10 keV</b> (multiple scattering adds to the single 180° path). Both corrections come from measurements on the Gamma-1C complex (NaI(Tl) 63×63, Pb 50 mm + Cd/Cu shield): 31 sound records out of 41; the edge coefficient clusters in 0.69–0.84 over 340–1250 keV, while the backscatter shift ranges from +0.3 to +18 keV and is set by the source geometry.</p><p>Marker intensity — a fraction of the parent line taken from the measured area ratios: BS 8 %, CE 6 %, SE 6 %, DE and the rest 10 % (for SUM — of the weaker line of the pair). Physics (checked against the originals): Knoll, Radiation Detection and Measurement, 3rd Ed., ch. 10 — Compton edge in sec. II.B, backscatter peak, escape peaks and summing in sec. III; Gilmore, Practical Gamma-ray Spectrometry, 2nd Ed., ch. 2 (interactions), 9.2.3 (second-derivative peak search) and 10 (scintillation spectrometry).</p>',
+  helpText:'<p><b>What it is for.</b> The tool builds two files for BecqMoni out of a snapshot of IAEA Live Chart (ENSDF) nuclear data: an <b>ROI configuration</b> (markers and zones on the energy axis) and a <b>nuclide set</b> — a named <code>NuclideSet</code> appended to your <code>NuclideDefinition.xml</code> library. The page is self-contained: the data sit as a snapshot in <code>data/nuclides.js</code>, nothing is fetched over the network.</p><p><b>Step 1 · Nuclides.</b> Three ways to gather sources: search by name (or by family code), a ready-made group — 8 families per ANSI N42.34 and 3 decay series — and the XRF panel (characteristic X-rays of shielding and detector materials). Search and group share the same three buttons: <b>add</b> the nuclide on its own, <b>+ family lines</b> (daughter lines go under the parent’s name as one entry) and <b>+ chain</b> (daughters as separate nuclides, parent in brackets). The brackets are not cosmetic: BecqMoni reads the chain from them and couples the line amplitudes. The five presets under the search box give a working example in one click.</p><p><b>Step 2 · Chains.</b> A NORM series reference in the spirit of NUCLÉIDE-LARA (LNHB). “Who emits at this energy” lists candidates within ±W keV; for series members the intensity is given per decay of the series root (branching and equilibrium already folded in), next to the candidate’s check lines in the same normalisation — they confirm or reject it; the buttons add the nuclide or the whole series to the selection. The “Series emission table” shows every γ and X line of a series per 100 root decays with a threshold, sorting and CSV export; it does not depend on the set and works as a standalone reference.</p><p><b>Step 3 · Lines.</b> <b>R</b> is the rated detector resolution at 662 keV; FWHM(E) = R·√(662·E)/100 follows from it (a scintillator model). <b>Merge close lines</b> merges what your detector cannot resolve anyway: the <b>Sparrow limit, 0.85·FWHM</b>, is the physical resolvability limit of two peaks and applies to ROI markers; the <b>anchored set, 0.25·FWHM</b>, is for library exports, because pairs between 0.25 and 0.85 FWHM are resolved by the library fit and merging them only impoverishes the set. Filters (intensity, energy, half-life) drive the <b>selection</b> of lines, while the type checkboxes only control visibility. Below are the secondary peaks (backscatter, Compton edge, 511 and 1022 escapes, summing, pile-up) and the whole-database nearby-line search: who else emits around this energy.</p><p><b>Step 4 · Styling and export.</b> Markers or zones, zone width as a percentage of energy or via k·FWHM, colours by chain or by nuclide. <b>Download ROI .xml</b> gives the file for <code>%APPDATA%\BecqMoni\config\ROI\</code>. <b>Append to the library</b> asks for your <code>NuclideDefinition.xml</code> and returns a copy with the set added — existing nuclides and sets are kept, and a backup of the original is downloaded alongside.</p><p><b>The anchor.</b> Exactly one line of the set is marked <code>IsAnchor=true</code>: once BecqMoni finds it in the spectrum, the remaining lines are placed at their tabulated positions and their amplitudes fitted. Without an anchor the library fit never starts. The automatic choice takes a strong and isolated line (2614.5 keV for Th-232, 609.3 for U-238), but you can set it by hand. The <b>full set</b> checkbox exports every line of the selected nuclides bypassing the filters: in the BecqMoni developer’s runs the gain comes precisely from the complete chain, while a set of strong lines alone adds nothing to the fit.</p><p><b>Before saving</b> the data are checked. For an ROI, coinciding energies, zero yield and overlapping zones are advisory — you can still save. For a set the first two are errors: two lines at one energy make the amplitude fit degenerate, and zero intensity drops a line out of the chain coupling.</p><p><b>Limits.</b> The database is a snapshot, not a live IAEA query (the API sends no CORS headers); it is refreshed by <code>update_nuclides.py</code> or by a GitHub Actions button. The peak-width model is for scintillators; for HPGe it underestimates the width at low energies. XRF intensities are nominal (Kα1 = 100) — markers, not yields. Secondary peaks are computed. Bq/cps coefficients are left empty: set them in BecqMoni from your efficiency curve. The tool is unofficial and not part of BecqMoni.</p><p><b>Sources and standards.</b> The table lists what exactly was taken and from where.</p><table class="srctbl"><thead><tr><th>What was taken</th><th>From where</th></tr></thead><tbody><tr><td>Energies and intensities of gamma lines, half-lives, decay branching — a base of <b>121 nuclides</b>, gamma threshold 0.05 %</td><td><a href="https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html" target="_blank" rel="noopener">IAEA Live Chart of Nuclides</a>, evaluated <a href="https://www.nndc.bnl.gov/ensdf/" target="_blank" rel="noopener">ENSDF</a> data (NNDC, Brookhaven National Laboratory). The snapshot lives in <code>data/nuclides.js</code>; its date is in the &laquo;about the data sources&raquo; footer</td></tr><tr><td>X-rays accompanying decay (K and L series of the daughter atoms), threshold 0.5 %</td><td>the same IAEA/ENSDF snapshot, separate line table</td></tr><tr><td>XRF energies for <b>10 elements</b> of shielding and detector (Fe, Cu, Cd, Sn, Te, I, Ba, La, W, Pb); intensities are nominal, K&alpha;1 = 100</td><td><a href="https://physics.nist.gov/PhysRefData/XrayTrans/Html/search.html" target="_blank" rel="noopener">NIST X-ray Transition Energies Database</a>, Bearden compilation</td></tr><tr><td>Family codes <b>NORM, MED, IND, SNM</b></td><td><a href="https://standards.ieee.org/standard/N42_34-2021.html" target="_blank" rel="noopener">IEEE/ANSI N42.34-2021</a> — performance criteria for handheld radionuclide identifiers (RIID). The FISS, NAA and WASTE groups sit outside the standard and were added for spectrometry work</td></tr><tr><td>Secondary-peak formulas: BS = E/(1+2E/511), CE = E − BS, SE = E − 511, DE = E − 1022, iodine K X-ray escape <b>−28 keV</b></td><td>G. F. Knoll, <a href="https://www.wiley.com/en-us/Radiation+Detection+and+Measurement,+4th+Edition-p-9780470131480" target="_blank" rel="noopener">Radiation Detection and Measurement</a> (Wiley), ch. 10: Compton edge in sec. II.B; backscatter peak (0.2–0.25 MeV), escape peaks and cascade summing in sec. III; iodine escape in fig. 10.10</td></tr><tr><td>Why the corrections are needed: the edge is smeared by the resolution while the peak is found by a <b>second-derivative</b> method, so the centroid cannot coincide with the drop</td><td>Knoll, ch. 10, sec. II.B (effect of electron binding); G. Gilmore, <a href="https://www.wiley.com/en-us/practical-gamma-ray-spectrometry-3rd-edition-p-9781119896081" target="_blank" rel="noopener">Practical Gamma-ray Spectrometry</a> (Wiley), sec. 9.2.3 — the Mariscotti algorithm</td></tr><tr><td>The correction figures: Compton edge <b>−0.8·FWHM</b>, backscatter <b>+10 keV</b>; fractions of the parent line BS 8 %, CE 6 %, SE 6 %</td><td>measurements on the Gamma-1C complex (NaI(Tl) 63×63, Pb 50 mm shield with a Cd/Cu liner): 9 nuclides, 18 primary lines, <b>31 records of 41</b> used — the rest dropped as overlaps. See <code>docs/REFERENCES-secondary-peaks.md</code></td></tr><tr><td>Series equilibrium factors: Tl-208 <b>×0.3594</b>, Po-212 ×0.6406, Th-227 ×0.9862, Fr-223 ×0.0138, Tl-207 ×0.99724, Po-211 ×0.00276</td><td>branching at the series forks (Bi-212 &beta; 64.06 % / &alpha; 35.94 %; Ac-227; Bi-211) from ENSDF data</td></tr><tr><td>Merge thresholds <b>0.85·FWHM</b> (Sparrow limit) and <b>0.25·FWHM</b> (anchored set), Fisher significance gate <b>z &ge; 4</b>, the single <code>IsAnchor</code> requirement</td><td>the <a href="https://github.com/Am6er/BecqMoni" target="_blank" rel="noopener">Am6er/BecqMoni</a> sources, <code>BecquerelMonitor/LibraryPeakFitter.cs</code></td></tr><tr><td>File formats: ROI <code>FormatVersion 120920</code>, the <code>NuclideDefinitionFile</code> structure (NuclideDefinitions + NuclideSets, guid binding)</td><td>the same sources: <code>ROIConfigData.cs</code>, <code>ROIDefinitionData.cs</code>, <code>NuclideDefinition.cs</code>, <code>NuclideSet.cs</code></td></tr></tbody></table>',
+  expHint:'<p><b>ROI configuration</b> goes into <code>%APPDATA%\\BecqMoni\\config\\ROI\\</code> (usually <code>C:\\Users\\&lt;name&gt;\\AppData\\Roaming\\BecqMoni\\config\\ROI\\</code>) and appears in the BecqMoni ROI list. </p><p><b>Nuclide library</b> — the same line selection is appended to your <code>NuclideDefinition.xml</code> as a named <b>NuclideSet</b>: pick your file (<code>%APPDATA%\\BecqMoni\\config\\NuclideDefinition.xml</code>), a copy with the added entries and set is downloaded — your existing nuclides and sets are preserved. With “save a backup of the original” ticked, the untouched file is downloaded alongside it (<code>…backup-YYYYMMDD-HHMM.xml</code>). Replace the file with BecqMoni closed. </p><p>The <b>anchor line</b> gets <code>IsAnchor=true</code>: once BecqMoni finds it in a spectrum, the remaining lines of the set are placed at their tabulated energies and their amplitudes are fitted (library fit) — without an anchor that machinery never starts. </p><p><b>Full set</b> exports every line of the selected nuclides, bypassing checkboxes, filters and merging: in the BecqMoni author’s runs the gain comes precisely from the complete decay chain, while a set of strong lines only adds nothing to the fit. Weights of tied lines come from <code>Intencity</code>, so keep “Series equilibrium” on for chains, and add nuclides as a chain or as a single parent — the parent in brackets is what marks the chain for BecqMoni.</p>',
+  wHint:'FWHM(E) = R₆₆₂·√(662·E)/100; zone = E ± k·FWHM/2. Limits are rounded outward to whole keV.',
+  footerText:'<p>Data: IAEA Live Chart of Nuclides API snapshot (ENSDF) — <code>data/nuclides.js</code>, updated by <code>update_nuclides.py</code> (the API sends no CORS headers, so updates run via the script; the page is fully offline). </p><p>XRF: NIST/Bearden. Secondary peaks: computed (Knoll, Gilmore &amp; Joss). Bq/cps coefficients are left at 0 — set them in BecqMoni from your efficiency curve. </p><p><a href="https://github.com/VibeEngineering-LLC/becqmoni-roi-wizard" target="_blank" rel="noopener">Sources on GitHub</a> · VibeEngineering · 2026 · unofficial tool, not part of <a href="https://github.com/Am6er/BecqMoni" target="_blank" rel="noopener">BecqMoni</a>.</p>'
+};
+// подсказки (title) — тот же приём, что и для абзацев: EN в словаре,
+// RU снимается с разметки при старте. Ключ — id либо CSS-селектор
+var TITLE_EN = {
+  nucAdd:'Only the selected nuclide, its own lines',
+  nucAddF:'All daughter lines under the selected nuclide’s name — one nuclide in the list',
+  nucAddC:'Daughters as separate nuclides, parent in brackets: “Tc-99m (Mo-99)”',
+  helpBtn:'What the tool does and how to use it',
+  famInfoBtn:'What the family codes mean',
+  mR662:'Detector resolution (FWHM) at 662 keV, %. NaI ~7–8, LaBr3 ~3, HPGe ~0.2',
+  mMode:'The threshold below which lines count as inseparable',
+  mK:'ΔE threshold in units of FWHM(E)',
+  mergeBtn:'Merge the lines of each nuclide (γ, X, XRF — regardless of selection) that are closer than the threshold: E — intensity-weighted centroid, I — sum',
+  fMinI:'Intensity threshold for ROI markers; 3 % is a working value for a scintillator with R ≈ 6 %',
+  anchorSel:'The line with IsAnchor=true: once BecqMoni finds it, the remaining set lines are placed at their tabulated positions and their amplitudes fitted',
+  btnNucXml:'Pick your own NuclideDefinition.xml — the set is appended to it, existing nuclides and sets are kept',
+  'th[data-k="I"]':'Per 100 decays of the nuclide; for XRF — nominal (Kα1=100)',
+  'th[data-k="rel"]':'Relative to the strongest line of this nuclide/element — the relative filter works on it'
+};
+var TITLE_RU = {};
+Object.keys(TITLE_EN).forEach(function(k){
+  var e = /^[a-zA-Z][\w-]*$/.test(k) ? $(k) : document.querySelector(k);
+  if (e) TITLE_RU[k] = e.title;
+});
+// значения полей: переводим только пока пользователь их не менял
+var VALUE_I18N = {libName:["Новый набор","New set"]};
+function applyValues(l){
+  Object.keys(VALUE_I18N).forEach(function(id){
+    var e = $(id), v = VALUE_I18N[id];
+    if (e && (e.value===v[0] || e.value===v[1])) e.value = l==="en" ? v[1] : v[0];
+  });
+}
+function applyTitles(l){
+  Object.keys(TITLE_EN).forEach(function(k){
+    var e = /^[a-zA-Z][\w-]*$/.test(k) ? $(k) : document.querySelector(k);
+    if (e) e.title = l==="en" ? TITLE_EN[k] : (TITLE_RU[k]||e.title);
+  });
+}
+var PARA_RU = {};
+Object.keys(PARA_EN).forEach(function(id){ var el = $(id); if (el) PARA_RU[id] = el.innerHTML; });
+var i18nNodes = [];
+(function(){
+  var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
+  var nd;
+  while (nd = w.nextNode()){
+    var t = nd.nodeValue.trim();
+    if (t && RU2EN[t]) i18nNodes.push({node:nd, ru:nd.nodeValue, en:nd.nodeValue.replace(t, RU2EN[t])});
+  }
+})();
+function updDbInfo(){
+  $("dbinfo").textContent = T("База: ","Database: ")+Object.keys(DB.nuclides).length+
+    T(" нуклидов, снимок IAEA от "," nuclides, IAEA snapshot of ")+DB.meta.generated+
+    T("; пороги базы: γ ≥ ","; thresholds: γ ≥ ")+DB.meta.g_min_intensity+" %, "+
+    T("ХРИ распада ≥ ","decay X-rays ≥ ")+DB.meta.x_min_intensity+" %.";
+}
+function setLang(l){
+  LANG = l; localStorage.setItem("roiLang", l);
+  document.documentElement.lang = l;
+  document.title = T("Конструктор ROI и наборов нуклидов для BecqMoni",
+                     "ROI and nuclide set builder for BecqMoni");
+  $("langBtn").textContent = T("EN","RU");
+  $("nucSearch").placeholder = T("напр. Eu-152","e.g. Eu-152");
+  i18nNodes.forEach(function(o){ o.node.nodeValue = l==="en" ? o.en : o.ru; });
+  Object.keys(PARA_EN).forEach(function(id){
+    var el = $(id); if (el) el.innerHTML = l==="en" ? PARA_EN[id] : PARA_RU[id];
+  });
+  applyTitles(l); applyValues(l);
+  updDbInfo(); updMergeHint(); buildPresets();
+  buildSelectors(); rebuildLines(); renderTable();
+  if ($("nearOut").innerHTML) searchNear();
+  if ($("laraOut").innerHTML) laraSearch();
+  $("laraEqLbl").textContent = T("интенсивность на распад корня ряда",
+                                 "intensity per decay of the series root");
+  emiFillChains();
+  if ($("emiOut").innerHTML) emiRender();
+}
+$("langBtn").addEventListener("click", function(){ setLang(LANG==="en" ? "ru" : "en"); });
+// справка по инструменту
+function showHelp(on){ $("helpBack").style.display = on ? "flex" : "none"; }
+$("helpBtn").addEventListener("click", function(){ showHelp(true); });
+$("helpClose").addEventListener("click", function(){ showHelp(false); });
+$("helpBack").addEventListener("click", function(ev){ if (ev.target===this) showHelp(false); });
+document.addEventListener("keydown", function(ev){ if (ev.key==="Escape") showHelp(false); });
+
+
+// ── вкладка «Цепочки»: справочник по рядам ──
+function chainMembersSelected(){
+  var n = 0;
+  Object.keys(DB.chains).forEach(function(c){
+    DB.chains[c].order.forEach(function(m){ if (sel.nuc[m]) n++; });
+  });
+  return n;
+}
+function chainApply(){ buildSelectors(); rebuildLines(); renderTable(); renderSum(); }
+
+// ── «кто светит на этой энергии»: поиск соседей с равновесным весом ряда ──
+// По образцу таблицы эмиссий NUCLEIDE-LARA (LNHB): интенсивность члена ряда
+// приводится к распаду КОРНЯ (множители EQ_FACTOR), рядом — контрольные линии,
+// по которым кандидата подтверждают или отбрасывают.
+function laraTop(n, exceptE, eqOn){
+  // нормировка контрольных линий обязана совпадать с колонкой I строки,
+  // иначе внутри одной строки окажутся две несовместимые шкалы
+  var e = DB.nuclides[n], eq = (eqOn && EQ_FACTOR[n]) ? EQ_FACTOR[n] : 1;
+  var s = e.g.filter(function(li){ return Math.abs(li[0]-exceptE) > 0.01; })
+    .sort(function(a,b){ return b[1]-a[1]; }).slice(0,2)
+    .map(function(li){ return li[0].toFixed(1)+" ("+fmtI(li[1]*eq)+" %)"; }).join(", ");
+  return s || "—";
+}
+function fmtI(v){ return v>=1 ? v.toFixed(1) : (v>=0.01 ? v.toFixed(2) : v.toExponential(1)); }
+function laraSearch(){
+  var E0 = parseFloat($("laraE").value), W = parseFloat($("laraW").value)||10;
+  var mi = parseFloat($("laraI").value)||0, eqOn = $("laraEq").checked;
+  var out = $("laraOut");
+  if (!(E0>0)){ out.innerHTML = '<span class="warn">'+T("Задайте энергию.","Enter an energy.")+"</span>"; return; }
+  var hits = [];
+  Object.keys(DB.nuclides).forEach(function(n){
+    var e = DB.nuclides[n], eq = eqOn && EQ_FACTOR[n] ? EQ_FACTOR[n] : 1;
+    var chain = e.chain || null;
+    e.g.forEach(function(li){
+      if (Math.abs(li[0]-E0)<=W && li[1]*eq>=mi)
+        hits.push({n:n, E:li[0], I:li[1]*eq, raw:li[1], t:"γ", chain:chain});
+    });
+    e.x.forEach(function(li){
+      if (Math.abs(li[0]-E0)<=W && li[1]*eq>=mi)
+        hits.push({n:n, E:li[0], I:li[1]*eq, raw:li[1], t:"X "+(li[2]||""), chain:chain});
+    });
+  });
+  hits.sort(function(a,b){ return b.I-a.I; });
+  if (!hits.length){
+    out.innerHTML = '<span class="hint">'+T("В окне ±","Nothing within ±")+W+
+      T(" кэВ выше порога ничего нет."," keV above the threshold.")+"</span>";
+    return;
+  }
+  var h = '<table class="laraTbl"><thead><tr><th>E, '+T("кэВ","keV")+"</th><th>I, %"+
+    (eqOn ? " <span class='hint'>"+T("на распад корня","per root decay")+"</span>" : "")+
+    "</th><th>"+T("тип","type")+"</th><th>"+T("нуклид","nuclide")+"</th><th>"+
+    T("ряд","series")+"</th><th>T&frac12;</th><th>"+T("проверить по","check against")+
+    "</th><th></th></tr></thead><tbody>";
+  hits.slice(0,40).forEach(function(x){
+    var root = x.chain ? chainRootName(x.chain) : null;
+    h += "<tr"+(sel.nuc[x.n] ? ' class="inset"' : "")+"><td>"+x.E.toFixed(2)+"</td><td><b>"+
+      fmtI(x.I)+"</b>"+(x.I!==x.raw ? ' <span class="hint">('+fmtI(x.raw)+" "+T("своей","own")+")</span>" : "")+
+      "</td><td>"+esc(x.t)+"</td><td><b>"+esc(dispNuc(x.n))+"</b></td><td>"+
+      (root ? esc(root) : "—")+"</td><td>"+hlText(x.n)+"</td><td>"+laraTop(x.n, x.E, eqOn)+"</td><td>"+
+      (sel.nuc[x.n] ? '<span class="hint">'+T("в наборе","in the set")+"</span>"
+        : '<a data-lara-add="'+esc(x.n)+'">'+T("+ нуклид","+ nuclide")+"</a>"+
+          (root ? ' <a data-lara-chain="'+esc(x.chain)+'">'+T("+ ряд","+ series")+"</a>" : ""))+
+      "</td></tr>";
+  });
+  h += "</tbody></table>";
+  if (hits.length>40) h += '<div class="hint">'+T("Показаны первые 40 из ","Showing the first 40 of ")+hits.length+"</div>";
+  out.innerHTML = h;
+}
+// ── таблица эмиссий ряда: самостоятельный справочник в духе LARA ──
+// Все γ и X членов ряда одной таблицей, интенсивности приведены к распаду
+// КОРНЯ (EQ_FACTOR); от набора не зависит, ничего в него не пишет.
+function emiRows(c){
+  var rows = [];
+  DB.chains[c].order.forEach(function(m){
+    var e = DB.nuclides[m]; if (!e) return;
+    var eq = EQ_FACTOR[m] || 1;
+    e.g.forEach(function(li){ rows.push({E:li[0], I:li[1]*eq, raw:li[1], t:"γ", n:m}); });
+    e.x.forEach(function(li){ rows.push({E:li[0], I:li[1]*eq, raw:li[1], t:"X "+(li[2]||""), n:m}); });
+  });
+  return rows;
+}
+function emiRender(){
+  var c = $("emiChain").value, mi = parseFloat($("emiI").value)||0;
+  var byI = $("emiSortI").checked;
+  var all = emiRows(c), rows = all.filter(function(r){ return r.I>=mi; });
+  rows.sort(byI ? function(a,b){ return b.I-a.I; } : function(a,b){ return a.E-b.E; });
+  var fac = DB.chains[c].order.filter(function(m){ return EQ_FACTOR[m]; })
+      .map(function(m){ return m+" ×"+EQ_FACTOR[m]; }).join(", ");
+  $("emiHint").textContent = T("Интенсивность — на 100 распадов ","Intensity — per 100 decays of ")+
+    chainRootName(c)+T(" в вековом равновесии"," in secular equilibrium")+
+    (fac ? T("; множители ветвей: ","; branch factors: ")+fac : "")+
+    ". "+T("Показано ","Shown ")+rows.length+T(" из ", " of ")+all.length+
+    ". "+T("CSV выгружается по возрастанию энергии.","The CSV is exported in ascending energy order.");
+  var h = '<div class="tblscroll" style="max-height:340px;overflow:auto">'+
+    '<table class="laraTbl"><thead><tr><th>E, '+T("кэВ","keV")+"</th><th>I, % "+
+    T("на распад корня","per root decay")+"</th><th>"+T("тип","type")+"</th><th>"+
+    T("излучатель","emitter")+"</th><th>"+T("своя I, %","own I, %")+"</th></tr></thead><tbody>";
+  rows.forEach(function(r){
+    h += "<tr><td>"+r.E.toFixed(2)+"</td><td><b>"+fmtI(r.I)+"</b></td><td>"+esc(r.t)+
+      "</td><td>"+esc(r.n)+"</td><td>"+fmtI(r.raw)+"</td></tr>";
+  });
+  $("emiOut").innerHTML = h+"</tbody></table></div>";
+}
+function emiCsv(){
+  var c = $("emiChain").value, mi = parseFloat($("emiI").value)||0;
+  var rows = emiRows(c).filter(function(r){ return r.I>=mi; })
+    .sort(function(a,b){ return a.E-b.E; });
+  var s = "E_keV;I_per_root_decay_pct;type;emitter;I_own_pct\n";
+  rows.forEach(function(r){
+    s += r.E+";"+r.I.toPrecision(5)+";"+r.t+";"+r.n+";"+r.raw+"\n";
+  });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([s], {type:"text/csv"}));
+  a.download = chainRootName(c)+"_equilibrium_emissions.csv";
+  a.click();
+}
+function emiFillChains(){
+  var s = $("emiChain"), keep = s.value; s.innerHTML = "";
+  Object.keys(DB.chains).forEach(function(c){
+    var o = document.createElement("option"); o.value = c; o.textContent = chainTitle(c);
+    s.appendChild(o);
+  });
+  if (keep && DB.chains[keep]) s.value = keep;   // смена языка не меняет выбранный ряд
+}
+$("emiGo").addEventListener("click", emiRender);
+$("emiCsv").addEventListener("click", emiCsv);
+$("emiChain").addEventListener("change", emiRender);
+$("emiSortI").addEventListener("change", emiRender);
+
+$("laraGo").addEventListener("click", laraSearch);
+$("laraE").addEventListener("keydown", function(ev){ if (ev.key==="Enter") laraSearch(); });
+$("laraOut").addEventListener("click", function(ev){
+  var t = ev.target.closest("[data-lara-add],[data-lara-chain]"); if (!t) return;
+  if (t.dataset.laraAdd) addNuc(t.dataset.laraAdd);
+  else DB.chains[t.dataset.laraChain].order.forEach(addNuc);
+  chainApply(); laraSearch();
+});
+
+// ── init ──
+setLang(LANG);
+</script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+/* Тема «host» — оформление окна BecqMoni (WinForms).
+   Разметку и id не менять: контракт в styles/README.md. */
+/* Оформление хоста (BecqMoni, WinForms): системный серо-синий, прямые углы,
+     Segoe UI 12 px, плотные списки. Панель должна быть неотличима от «Обнаружения пиков». */
+  :root{
+    --bg:#eef1f4; --card:#ffffff; --ink:#1a1a1a; --muted:#5a6472;
+    --line:#adadad; --accent:#2b6cb0; --accent-ink:#1f3a5f;
+    --ok:#1f6b3a; --input-bg:#ffffff; --sel:#cde4f7; --chip:#e5e5e5;
+    --panel:#f0f0f0; --head:#1f3a5f; --tabbg:#d3e0ee; --grid:#d7dde5;
+    /* заливка микро-бара интенсивности: полупрозрачная, чтобы читалась и на белой
+       строке, и на выбранной (её фон — --sel) */
+    --bar:rgba(20,72,116,.22);
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); height:100dvh; overflow:hidden;
+    font:12px/1.45 "Segoe UI",Tahoma,Arial,sans-serif}
+  /* ── окно хоста: заголовок, меню, закладки во всю ширину, статусная строка ── */
+  .app{height:100dvh; display:flex; flex-direction:column}
+  .topbar{display:flex; align-items:center; gap:10px; padding:4px 10px;
+    background:var(--head); color:#fff; flex-shrink:0}
+  .topbar h1{font-size:12px; font-weight:600; margin:0; white-space:nowrap; color:#fff}
+  .topbar .spacer{flex:1}
+  .topbar button{background:transparent; border:none; color:#dbe6f2; height:20px; padding:0 8px}
+  .topbar button:hover{background:#2d4f79; border:none}
+  /* полосы меню над закладками нет — готовые наборы стоят в своём шаге строкой ссылок */
+  .presets{display:flex; flex-wrap:wrap; gap:0 4px; align-items:baseline}
+  .preset{color:var(--accent); cursor:pointer}
+  .preset:hover{text-decoration:underline}
+  .tabs{display:flex; gap:0; padding:6px 10px 0; background:var(--panel); flex-shrink:0}
+  .tabs button{border:1px solid #9fb0c6; border-bottom:none; border-radius:3px 3px 0 0;
+    background:var(--tabbg); padding:6px 14px; font-size:12px; color:var(--ink);
+    white-space:nowrap; margin-right:2px; height:auto}
+  .tabs button.on{background:#fff; color:var(--accent-ink); font-weight:600;
+    box-shadow:0 1px 0 #fff; position:relative; z-index:2}
+  .tabs button b{color:var(--accent); margin-left:5px}
+  .tabbody{display:none; padding:8px; overflow-y:auto; flex:1; min-height:0;
+    background:#fff; border-top:1px solid #9fb0c6}
+  .tabbody.on{display:flex; flex-direction:column}
+  /* group box, как в WinForms: рамка с легендой */
+  .gbox{border:1px solid #c3cddb; padding:8px 10px 9px; margin:0 0 6px; position:relative;
+    background:#fff}
+  .gbox > .lg{position:absolute; top:-8px; left:8px; background:#fff; padding:0 5px;
+    font-size:12px; font-weight:600; color:var(--accent-ink)}
+  .gbox.grow{flex:1; min-height:0; display:flex; flex-direction:column}
+  .cols3{display:grid; grid-template-columns:1fr 1.15fr 1fr; gap:8px; flex:1; min-height:0}
+  .cols3 > .gbox{display:flex; flex-direction:column; min-height:0}
+  .cols2{display:grid; grid-template-columns:1.35fr 1fr; gap:8px; align-items:start}
+  .infoline{background:#eaf1f8; border:1px solid #c3d5e8; padding:3px 8px; margin:0 0 5px;
+    font-size:12px; color:var(--accent-ink)}
+  .statusbar{display:flex; align-items:center; gap:12px; padding:5px 10px; flex-shrink:0;
+    border-top:1px solid var(--line); background:var(--panel); font-size:12px;
+    font-variant-numeric:tabular-nums}
+  .statusbar .sum b{color:var(--accent-ink)}
+  /* «?» в строке контролов: раскрытый текст — тем же всплывающим окном, что и
+     словарик кодов (.infoPop), чтобы пояснение не раздвигало вёрстку.
+     Закрывается кликом мимо и Esc */
+  .line{position:relative}
+  .line > details.doc[open] > *:not(summary){position:absolute; left:0; right:0; top:100%;
+    z-index:40; margin:2px 0 0; padding:6px 9px; max-width:none;
+    max-height:min(340px,46vh); overflow:auto;
+    background:#ffffe1; border:1px solid #b0a060; box-shadow:0 4px 10px rgba(0,0,0,.2)}
+  /* справка по инструменту — поверх окна, во всю его ширину */
+  .modalback{position:fixed; inset:0; z-index:60; background:rgba(20,30,45,.35);
+    display:flex; align-items:center; justify-content:center; padding:12px}
+  .modal{display:flex; flex-direction:column; width:100%; max-height:100%;
+    background:#fff; border:1px solid #9fb0c6; box-shadow:0 10px 30px rgba(20,40,70,.35)}
+  .modalhead{display:flex; align-items:center; gap:10px; padding:5px 8px;
+    background:var(--head); color:#fff; flex-shrink:0}
+  .modalhead button{background:transparent; border:none; color:#dbe6f2; height:20px; padding:0 8px}
+  .modalhead button:hover{background:#2d4f79; border:none}
+  .modalbody{overflow:auto; padding:10px 14px}
+  .modalbody p{margin:0 0 8px}
+  /* таблица «что взято → откуда»: первая колонка уже, обе строки читаемы целиком */
+  .srctbl{width:100%; border-collapse:collapse; margin:2px 0 6px}
+  .srctbl th{text-align:left; white-space:normal}
+  .srctbl td{padding:4px 8px; vertical-align:top; line-height:1.4; white-space:normal;
+    border-bottom:1px solid var(--grid)}
+  .srctbl td:first-child{width:38%}
+  .srctbl a{color:var(--accent)}
+  /* бейджи семейств в списке нуклидов */
+  .fbadge{display:inline-block; font-size:10.5px; font-weight:600; padding:0 5px; margin-right:3px;
+    border-radius:2px; letter-spacing:.02em}
+  .f-popular{background:#e2f0dc; color:#2f6b3f}
+  .f-norm{background:#dce9f5; color:#28527a}
+  .f-med{background:#f5e2ef; color:#8a3d72}
+  .f-ind{background:#e6e2f5; color:#4b3f8a}
+  .f-snm{background:#fdf0d0; color:#8a6a1f}
+  .f-fiss{background:#fde2de; color:#93372c}
+  .f-naa{background:#dff0f2; color:#276b73}
+  .f-waste{background:#ece6de; color:#6b5a45}
+  h1{font-size:24px; margin:0 0 4px}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 6px}
+  .card{margin:0 0 10px}
+  h2{font-size:12px; font-weight:600; margin:0 0 6px; color:var(--accent-ink);
+    border-bottom:1px solid var(--grid); padding-bottom:3px}
+  h2 .n{color:var(--accent); font-variant-numeric:tabular-nums; margin-right:6px}
+  h3{font-size:12px; font-weight:600; margin:8px 0 4px; color:var(--accent-ink)}
+  label{font-size:12px; color:var(--ink); font-weight:400; display:block; margin-bottom:2px}
+  /* пояснения — под «подробнее», а не между полем и кнопкой */
+  details.doc{margin:4px 0 0}
+  details.doc > summary{font-size:12.5px; color:var(--accent-ink); cursor:pointer;
+    list-style:none; display:inline-block; border-bottom:1px dotted var(--accent)}
+  details.doc > summary::-webkit-details-marker{display:none}
+  details.doc .hint{max-width:none}   /* справка идёт во всю ширину панели */
+  /* сегментный переключатель — там, где вариантов 2–3 */
+  .seg{display:flex}
+  .seg button{border-radius:0; border-right-width:0; flex:1; padding:3px 8px; font-size:12px}
+  .seg button:last-child{border-right-width:1px}
+  .seg button.on{background:var(--sel); border-color:var(--accent); color:var(--accent-ink);
+    font-weight:600; position:relative; z-index:1}
+  .srcPane{display:none}
+  .srcPane.on{display:block}
+  .toast{position:absolute; right:10px; bottom:34px; z-index:40; max-width:min(560px,60vw);
+    background:#ffffe1; border:1px solid #b0a060; border-radius:0;
+    padding:6px 10px; font-size:12px; box-shadow:0 4px 12px rgba(0,0,0,.25)}
+  .toast code{font-size:12px}
+  .content{position:relative}
+  tr.hovered{outline:2px solid var(--accent); outline-offset:-2px}
+  input[type=number],input[type=text],select{
+    padding:2px 5px; font-size:12px; height:23px; color:var(--ink); background:var(--input-bg);
+    border:1px solid var(--line); border-radius:0; font-variant-numeric:tabular-nums;
+    font-family:inherit}
+  input:focus,select:focus{outline:2px solid var(--accent); outline-offset:1px}
+  button{padding:3px 10px; font-size:12px; height:23px; border-radius:0; border:1px solid var(--line);
+    background:var(--chip); color:var(--ink); cursor:pointer; font-family:inherit}
+  button:hover{background:#e8f0f8; border-color:var(--accent)}
+  button.primary{background:#dbe8f5; border-color:#7d9cbb; color:var(--accent-ink); font-weight:600}
+  .row{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:flex-end}
+  /* компактная строка: подпись и поле в одну линию, без вертикальных label */
+  .line{display:flex; flex-wrap:wrap; align-items:center; gap:4px 9px; margin:0 0 3px}
+  .line:last-child{margin-bottom:0}
+  .line > label{display:inline; margin:0; white-space:nowrap}
+  .line .sep{color:var(--muted)}
+  .gbox{padding:6px 8px 6px}
+  .gbox + .gbox{margin-top:5px}
+  .cols{display:grid; grid-template-columns:1fr; gap:10px}
+  /* блок 1: заголовок / панель управления / список / хвост — строки колонок выровнены,
+     поэтому все три списка начинаются на одной линии */
+  .cols.aligned{grid-template-rows:auto auto auto auto}
+  .cols.aligned > div{display:grid; grid-row:span 4; grid-template-rows:subgrid;
+    row-gap:0; align-content:start}
+  .cols.aligned .ctl{align-self:start; position:relative}
+  /* словарик кодов — всплывающей панелью поверх списка, чтобы не двигать вёрстку */
+  .infoPop{position:absolute; left:0; right:0; top:100%; z-index:20; margin:2px 0 0;
+    background:#ffffe1; border:1px solid #b0a060; border-radius:0;
+    padding:6px 9px; box-shadow:0 4px 10px rgba(0,0,0,.2)}
+  @media(max-width:900px){
+    .cols{grid-template-columns:1fr}
+    .cols.aligned{grid-template-rows:none}
+    .cols.aligned > div{display:block; grid-row:auto}
+  }
+  .group{border:1px solid var(--line); border-radius:0; padding:4px 8px; margin:0; background:#fff}
+  .group .ghead{display:flex; justify-content:space-between; align-items:center; gap:8px;
+    font-weight:600; font-size:12px; cursor:pointer; color:var(--accent-ink)}
+  .gctl{display:flex; gap:6px; align-items:center; flex-wrap:nowrap; white-space:nowrap; flex-shrink:0}
+  button.exp{min-width:34px; height:30px; padding:0; font-size:15px; line-height:1;
+    background:var(--sel); border:1px solid var(--accent); color:var(--accent-ink);
+    border-radius:8px; transition:transform .15s}
+  .group.open button.exp{transform:rotate(180deg)}
+  .group .gbody{margin-top:5px; display:none; max-height:220px; overflow-y:auto}
+  .group.open .gbody{display:block}
+  .nuc{display:flex; align-items:center; gap:6px; padding:1px 4px; font-size:12px; line-height:16px;
+    font-variant-numeric:tabular-nums}
+  .nuc .hl{color:var(--muted); font-size:12px; margin-left:auto; white-space:nowrap}
+  .nuc.nolines{opacity:.5}
+  .nuclist{border:1px solid var(--line); border-radius:0; padding:2px; margin-top:6px;
+    background:#fff; flex:1; min-height:80px; overflow-y:auto}
+  .nuclist .nuc.hit{cursor:pointer; border-radius:0}
+  .nuclist .nuc.hit:hover{background:var(--sel)}
+  .nuclist .nuc .fam{color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.04em}
+  .nuclist .nuc .note{color:var(--muted); font-size:11.5px; min-width:0; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap}
+  .nuclist .empty{color:var(--muted); font-size:13px; padding:4px 2px}
+  .chipbar{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
+  .chip{background:var(--chip); border:1px solid var(--line); border-radius:0;
+    padding:2px 8px; font-size:12px; cursor:pointer; user-select:none}
+  .chip.on{background:var(--sel); border-color:var(--accent); color:var(--accent-ink); font-weight:600}
+  .tblscroll{overflow:auto; border:1px solid var(--line); border-radius:0; margin:0; flex:1; min-height:0}
+  table{width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums}
+  th,td{border-bottom:1px solid var(--grid); padding:1px 8px; text-align:right; white-space:nowrap;
+    line-height:17px}
+  th{position:sticky; top:0; background:var(--panel); font-weight:600; cursor:pointer;
+    user-select:none; z-index:2; border-bottom:1px solid var(--line); padding:3px 8px}
+  th:first-child,td:first-child{text-align:center; width:26px}
+  td input[type=checkbox]{width:13px; height:13px; margin:0; vertical-align:middle}
+  tbody tr:hover{background:#eaf1f8}
+  th:nth-child(2),td:nth-child(2),th:nth-child(7),td:nth-child(7){text-align:left}
+  tr.selrow{background:var(--sel)}
+  .badge{display:inline-block; font-size:11px; font-weight:600; border-radius:2px; padding:0 5px}
+  .b-g{background:#dce9f5; color:#28527a}
+  .b-x{background:#f5e2ef; color:#8a3d72}
+  .b-xrf{background:#fdf0d0; color:#8a6a1f}
+  .b-sec{background:#e2f0dc; color:#2f6b3f}
+  .hint{font-size:11.5px; color:var(--muted); margin:3px 0 0}
+  .colorchips{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
+  .cchip{display:flex; align-items:center; gap:6px; background:var(--chip); border:1px solid var(--line);
+    border-radius:0; padding:2px 6px; font-size:12px}
+  .cchip input[type=color]{width:26px; height:22px; border:none; background:none; padding:0; cursor:pointer}
+  pre{background:var(--input-bg); border:1px solid var(--line); border-radius:0; padding:6px 8px;
+    font-size:12px; overflow:auto; max-height:300px}
+  .stat{font-size:12px; color:var(--muted)}
+  .stat b{color:var(--accent-ink); font-size:12px}
+  .warn{color:#a05a2a; font-size:12.5px}

@@ -1,0 +1,195 @@
+/* Тема «becqmoni» — оформление под окно BecqMoni (WinForms), плотность под панель 400–520 px.
+   Грузится ПОВЕРХ styles/host.css. Разметку, id и имена классов не меняет.
+   Ориентир: макет ROI-мастера (закладки шагов), см. styles/README.md.
+   Проверять: index.html?style=becqmoni */
+
+/* ── 1. Переменные темы ─────────────────────────────────────────────── */
+:root{
+  --bg:#f0f0f0;            /* фон окна — системный серый */
+  --card:#ffffff;
+  --panel:#eceff3;         /* меню, закладки, статусная строка */
+  --head:#1f3a5f;          /* заголовок окна */
+  --ink:#1a1a1a; --muted:#5a6672;
+  --line:#adadad;          /* рамки контролов */
+  --grid:#eef0f2;          /* линии сетки таблицы — светлее рамок */
+  --accent:#12507a; --accent-ink:#1f3a5f;
+  --sel:#cde4f7;
+  --bar:rgba(20,72,116,.22); /* микро-бар I: полупрозрачный, не сливается с --sel */
+  --chip:#e5e5e5;
+  --tabbg:#e4e4e4;         /* неактивная закладка — серая, не голубая */
+  --input-bg:#ffffff;
+  --ok:#2f6b42;
+}
+
+/* ── 2. Каркас окна ─────────────────────────────────────────────────── */
+body{font:12px/1.4 "Segoe UI",Tahoma,Arial,sans-serif}
+.topbar{padding:3px 8px; gap:8px}
+.topbar h1{font-size:12px}
+.presets{font-size:11px; margin:3px 0 0}
+
+.tabs{padding:4px 8px 0; gap:1px; border-bottom:1px solid #9fb0c6}
+.tabs button{border:1px solid #c0c0c0; border-bottom:none; border-radius:0; background:var(--tabbg);
+  color:#454545; padding:4px 13px; margin:0; height:auto}
+.tabs button:hover{background:#eaeef2; border-color:#9fb0c6}
+.tabs button.on{background:#fff; border-color:#9fb0c6; color:var(--accent-ink); font-weight:600}
+.tabs button b{color:var(--accent); font-weight:600}
+
+.tabbody{padding:8px; border-top:none; overflow-x:hidden}
+.statusbar{padding:4px 8px; gap:8px; border-top:1px solid #a8b3c0; background:var(--panel)}
+.statusbar .sum{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+/* ── 3. Контролы: 23 px, прямые углы, подписи без капслока ───────────── */
+input[type=number],input[type=text],select{height:23px; padding:1px 4px; border-radius:0}
+/* числа — по правому краю с отступом: разряды выстраиваются в столбик, и значение
+   не упирается в стрелки счётчика (в окне BecqMoni то же правило) */
+input[type=number]{text-align:right; padding-right:6px}
+select{padding-right:2px}
+button{height:23px; padding:2px 9px; border-radius:0; white-space:nowrap; /* подпись не режется */
+  background:var(--chip); border:1px solid var(--line)}
+button:hover{background:#d5e6f5; border-color:#7aa7ce}
+button:active{background:#c4dcf0}
+button.primary{background:var(--accent); border-color:#0c3c5c; color:#fff; font-weight:600}
+button.primary:hover{background:#0e4468; border-color:#0c3c5c}
+button:disabled,button[disabled]{color:#9a9a9a; background:#ededed; border-color:#cfcfcf}
+input:disabled,select:disabled{background:#f1f1f1; color:#8d8d8d; border-color:#cfcfcf}
+label{font-size:12px; text-transform:none; letter-spacing:0}
+input[type=checkbox]{width:13px; height:13px; margin:0 3px 0 0; vertical-align:-2px}
+
+/* компактная строка «подпись + поле» — на ней держится экономия высоты */
+.line{gap:4px 8px; margin:0 0 3px; align-items:center}
+.line > label{white-space:nowrap}
+.line .sep{color:#9aa3ad; padding:0 1px}
+.line .hint{font-size:11px}
+.row{gap:4px 8px}
+
+/* group box */
+.gbox{padding:6px 8px 7px; border:1px solid #c4c4c4; margin:0}
+.gbox > .lg{top:-8px; left:7px; padding:0 4px; font-size:12px; color:var(--accent-ink)}
+.gbox + .gbox{margin-top:5px}
+.cols3{gap:8px}
+.cols2{gap:8px}
+.infoline{padding:3px 7px; margin:0 0 4px; font-size:11.5px; background:#eaf1f8; border-color:#c3d3e4}
+
+/* «?» в строке контролов — кнопка-подсказка; свёрнутые тексты — обычные ссылки */
+.line > details.doc > summary{display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; border:1px solid var(--line); background:var(--chip);
+  color:var(--accent); font-size:10px; font-weight:600; border-bottom-style:solid; cursor:help}
+.line > details.doc > summary:hover{background:#d5e6f5; border-color:#7aa7ce}
+.line > details.doc[open] > summary{background:var(--sel); border-color:var(--accent)}
+details.doc > summary{font-size:12px; color:var(--accent-ink); border-bottom:1px dotted var(--accent)}
+details.doc .hint{max-width:none}   /* тексты справки идут во всю ширину панели */
+/* всплывающая справка — как словарик кодов: жёлтая подложка, тот же кегль */
+.line > details.doc[open] > *:not(summary){font-size:11.5px; line-height:1.45; color:var(--ink)}
+.hint{font-size:11px; margin:3px 0 0}
+.stat b{color:var(--accent-ink)}
+.warn{color:#a05a2a; font-size:11.5px}
+
+/* сворачиваемые блоки (вторичные пики, поиск близких линий) — как строка-заголовок */
+.group{border:1px solid #c4c4c4; background:#f7f7f7; padding:0; margin:5px 0 0}
+.group .ghead{padding:3px 8px; font-size:12px; font-weight:400}
+.group .ghead > span:first-child{color:var(--accent-ink); font-weight:600}
+.group .gbody{margin:0; padding:6px 8px 7px; background:#fff; border-top:1px solid #e2e2e2;
+  max-height:230px}
+button.exp{height:19px; min-width:24px; border-radius:0; font-size:11px}
+
+/* сегментный переключатель */
+.seg button{white-space:nowrap; padding:2px 8px}
+.chip{padding:1px 7px; border-radius:0}
+.chip.on{background:var(--sel); border-color:#7aa7ce; color:var(--accent-ink); font-weight:400}
+
+/* ── 4. Шаг 3 «Линии»: настройки ≤ ~300 px, таблица получает 20+ строк ── */
+.tabbody[data-body="3"] > .gbox,
+.tabbody[data-body="3"] > .cols2{flex:0 0 auto}
+.tabbody[data-body="3"] > .cols2 + .cols2{margin-top:5px}
+.tabbody[data-body="3"] .tblscroll{flex:1 1 auto; min-height:260px; margin-top:6px}
+.tabbody[data-body="3"] .gbox .hint{margin:2px 0 0}
+
+/* ── Шаг 2 «Цепочки»: справочные таблицы ── */
+.laraTbl{border-collapse:collapse; margin-top:6px; width:100%}
+.laraTbl th,.laraTbl td{border:1px solid var(--line); padding:2px 7px; text-align:left;
+  font-size:12px; white-space:nowrap}
+.laraTbl th{background:#f2f5f8; font-weight:400; color:#5a6a7a}
+.laraTbl tr.inset td{background:var(--sel)}
+.laraTbl a{cursor:pointer; color:var(--accent-ink); text-decoration:underline dotted}
+/* длинные комбобоксы — по содержимому, но с потолком, чтобы не давить соседей */
+#iMode{width:auto !important; max-width:270px !important; min-width:0}
+#anchorSel{width:auto !important; max-width:300px !important; min-width:0}
+#mMode{max-width:240px}
+/* панель «Фильтры и выбор» — всё в три строки во всю ширину, переносится по месту;
+   разделитель «·» между смысловыми группами внутри строки */
+.line .sep{color:#9aa3ad}
+.line > .hint{flex:0 1 auto; min-width:0}
+/* длинная подпись «равновесие ряда» держит «?» на той же строке */
+.line > label{flex:0 0 auto; white-space:nowrap}
+.line > label:has(#eqScale),
+.line > label:has(#libFull),
+.line > label:has(#bakOrig){flex:0 1 auto; white-space:normal; min-width:0}
+/* заголовки сворачиваемых блоков — одна строка */
+.group .ghead > span:first-child{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+/* чекбоксы типов вторичных пиков: дышать между парами */
+#secGroup .gbody .secT{margin-left:10px}
+#secGroup .gbody .line > span{line-height:19px}
+
+/* ── 5. Списки нуклидов: строка 17 px, ничего не переносится ─────────── */
+.nuclist{padding:1px; border:1px solid #a8b3c0; margin-top:5px; min-height:70px}
+.nuc{padding:0 4px; line-height:17px; font-size:11.5px; gap:5px}
+.nuc > span:first-of-type{white-space:nowrap; flex-shrink:0}   /* имя нуклида не переносится */
+.nuc > span:first-of-type b{font-weight:600}
+.nuclist .nuc.hit:hover{background:#f2f7fc}
+.nuclist .nuc.hit:active{background:var(--sel)}
+.nuc .hl{font-size:11px; white-space:nowrap}
+.nuc .note{font-size:11px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nuc.nolines{opacity:1; color:#9a9a9a}
+.nuclist .empty{font-size:11.5px; color:var(--muted)}
+.fbadge{font-size:9.5px; line-height:14px; padding:0 4px; border-radius:0; font-weight:600}
+.chipbar{gap:4px; margin-top:5px}
+.infoPop{border-radius:0; padding:5px 8px; font-size:11.5px}
+
+/* ── 6. Таблица линий: строка 21–22 px ──────────────────────────────── */
+.tblscroll{border:1px solid #a8b3c0; border-radius:0}
+table{font-size:11.5px}
+th{padding:2px 7px; background:var(--panel); border-bottom:1px solid #a8b3c0; font-size:11px;
+  color:#2b3a4d; white-space:nowrap}
+th:hover{background:#e2e8ef}
+td{padding:0 7px; line-height:20px; border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{width:24px}
+tbody tr:hover{background:#f2f7fc}
+tr.selrow{background:var(--sel)}
+tr.selrow:hover{background:#bedcf3}
+tr.hovered{outline:1px solid var(--accent); outline-offset:-1px}
+.badge{font-size:9.5px; line-height:14px; padding:0 5px; border-radius:0; font-weight:600}
+.b-g{background:#d3e0ee; color:#12507a}
+.b-x{background:#ecd9e8; color:#8a4a7a}
+.b-xrf{background:#f6e6c8; color:#8a6420}
+.b-sec{background:#d9e8dc; color:#2f6b42}
+
+/* ── 7. Шаг 3: палитра, оформление и экспорт на одной странице ───────── */
+.colorchips{gap:5px; margin-top:6px}
+.cchip{padding:1px 5px; border-radius:0; font-size:11.5px; gap:5px}
+.cchip input[type=color]{width:22px; height:18px}
+.tabbody[data-body="4"] > .gbox{flex:0 0 auto}
+.tabbody[data-body="4"] > details.doc{margin-top:8px}
+
+/* ── 8. Экспорт и сообщения ─────────────────────────────────────────── */
+pre{border-radius:0; font-size:11.5px; padding:5px 7px; max-height:260px}
+.toast{border-radius:0; bottom:32px; font-size:11.5px; padding:5px 9px}
+
+/* ── 9. Полосы прокрутки — узкие, системные ─────────────────────────── */
+*{scrollbar-width:thin; scrollbar-color:#c6ccd4 var(--panel)}
+::-webkit-scrollbar{width:12px; height:12px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:#c6ccd4; border:1px solid #b3bac3}
+::-webkit-scrollbar-thumb:hover{background:#aeb6c0}
+
+/* ── 10. Узкая панель 400–520 px: одна колонка, ничего не вылезает ──── */
+@media (max-width:620px){
+  .cols3,.cols2{grid-template-columns:1fr}
+  .tabs button{padding:4px 9px}
+  #roiMode{max-width:100%; flex:1 1 140px; min-width:0}
+  /* самые длинные подписи: в панели отдаём селекту всю строку, иначе режется */
+  #mMode,#iMode{max-width:100% !important; flex:1 1 100%; min-width:0}
+  .line{gap:3px 6px}
+  .line > .hint{display:none}          /* пояснения — под «?», в узкой панели их нет */
+  .tabbody[data-body="3"] .tblscroll{min-height:180px}
+  input[type=number],input[type=text],select{max-width:100%}
+}
