@@ -1,4 +1,4 @@
-<svg viewBox="0 0 1400 700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Calibri, sans-serif">
+<svg viewBox="0 0 1640 700" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Calibri, sans-serif">
   <defs>
     <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#3a5a7d"/>
@@ -54,83 +54,103 @@
   <text x="1234" y="126" class="line">ядерная база</text>
   <text x="1234" y="144" class="line">(read-only)</text>
 
+  <rect x="1430" y="60" width="190" height="150" rx="8" class="newbox"/>
+  <text x="1444" y="84" class="title">Нормативы (НОВОЕ)</text>
+  <text x="1444" y="106" class="line">редактируемые пороги</text>
+  <text x="1444" y="124" class="line">удельной активности</text>
+  <text x="1444" y="142" class="line">(СанПиН, ТР ТС, …) —</text>
+  <text x="1444" y="160" class="line">по образцу спец-</text>
+  <text x="1444" y="178" class="line">отчётов SpectraLine</text>
+
   <!-- связи верхнего ряда -->
   <path d="M 280 130 L 330 130" class="arrow"/>
   <text x="288" y="122" class="lbl">1 : N</text>
   <path d="M 1160 125 L 1220 125" class="arrow"/>
   <text x="1168" y="117" class="lbl">индексы</text>
 
-  <!-- КОНВЕЙЕР -->
-  <rect x="40" y="310" width="240" height="170" rx="8" class="stage"/>
+  <!-- КОНВЕЙЕР: 6 этапов -->
+  <rect x="40" y="310" width="230" height="170" rx="8" class="stage"/>
   <text x="54" y="334" class="title">1 · Набор спектра</text>
   <text x="54" y="356" class="line">приём с прибора, фон;</text>
   <text x="54" y="374" class="line">калибровка E: шкала</text>
   <text x="54" y="392" class="line">канал→энергия (рабочая</text>
   <text x="54" y="410" class="line">копия — в документе);</text>
-  <text x="54" y="428" class="line">стабилизация шкалы на лету</text>
+  <text x="54" y="428" class="line">стабилизация шкалы</text>
 
-  <rect x="320" y="310" width="240" height="170" rx="8" class="stage"/>
-  <text x="334" y="334" class="title">2 · Образец и геометрия</text>
-  <text x="334" y="356" class="line">SampleInfo: масса, сосуд;</text>
-  <text x="334" y="374" class="line">выбор геометрии</text>
-  <text x="334" y="392" class="line">(или умолчание прибора);</text>
-  <text x="334" y="410" class="line">«не выбрана» — видно</text>
+  <rect x="310" y="310" width="230" height="170" rx="8" class="stage"/>
+  <text x="324" y="334" class="title">2 · Образец и геометрия</text>
+  <text x="324" y="356" class="line">SampleInfo: масса, объём,</text>
+  <text x="324" y="374" class="line">сосуд; выбор геометрии</text>
+  <text x="324" y="392" class="line">(или умолчание прибора);</text>
+  <text x="324" y="410" class="line">«не выбрана» — видно</text>
 
-  <rect x="600" y="310" width="260" height="170" rx="8" class="stage"/>
-  <text x="614" y="334" class="title">3 · Счёт</text>
-  <text x="614" y="354" class="line">поиск пиков: matched-фильтр</text>
-  <text x="614" y="372" class="line">+ RJMCMC-деконволюция (опция);</text>
-  <text x="614" y="390" class="line">FWHM и форма пика — из Device</text>
-  <text x="614" y="412" class="line">тракт А: зоны + правила → net cps</text>
-  <text x="614" y="430" class="line">тракт В: фиттер → площади S_jk</text>
-  <text x="614" y="448" class="line">(тракт Б: выделение)</text>
+  <rect x="580" y="310" width="250" height="170" rx="8" class="stage"/>
+  <text x="594" y="334" class="title">3 · Счёт</text>
+  <text x="594" y="354" class="line">поиск пиков: matched-фильтр</text>
+  <text x="594" y="372" class="line">+ RJMCMC-деконволюция (опция);</text>
+  <text x="594" y="390" class="line">FWHM и форма — из Device</text>
+  <text x="594" y="412" class="line">тракт А: зоны+правила → net cps</text>
+  <text x="594" y="430" class="line">тракт В: фиттер → площади S_jk</text>
+  <text x="594" y="448" class="line">(тракт Б: выделение)</text>
 
-  <rect x="900" y="310" width="240" height="170" rx="8" class="stage"/>
-  <text x="914" y="334" class="title">4 · Активность</text>
-  <text x="914" y="356" class="line">A = net / (ε(E)·I/100)</text>
-  <text x="914" y="374" class="line">ε — из геометрии,</text>
-  <text x="914" y="392" class="line">I — из живого набора;</text>
-  <text x="914" y="410" class="line">ручной K — видимое</text>
-  <text x="914" y="428" class="line">переопределение</text>
+  <rect x="870" y="310" width="230" height="170" rx="8" class="stage"/>
+  <text x="884" y="334" class="title">4 · Активность, Бк</text>
+  <text x="884" y="356" class="line">A = net / (ε(E)·I/100)</text>
+  <text x="884" y="374" class="line">ε — из геометрии,</text>
+  <text x="884" y="392" class="line">I — из живого набора;</text>
+  <text x="884" y="410" class="line">ручной K — видимое</text>
+  <text x="884" y="428" class="line">переопределение</text>
 
-  <rect x="1180" y="310" width="200" height="170" rx="8" class="stage newbox"/>
-  <text x="1194" y="334" class="title">5 · Результат</text>
-  <text x="1194" y="356" class="line">A ± σ, МДА</text>
-  <text x="1194" y="374" class="line">снапшот: ε, I, версии,</text>
-  <text x="1194" y="392" class="line">зоны, фон</text>
-  <text x="1194" y="414" class="line">СОХРАНЯЕТСЯ;</text>
-  <text x="1194" y="432" class="line">пересчёт — явно</text>
+  <rect x="1140" y="310" width="230" height="170" rx="8" class="stage newbox"/>
+  <text x="1154" y="334" class="title">5 · Оценка образца (НОВОЕ)</text>
+  <text x="1154" y="356" class="line">удельная активность</text>
+  <text x="1154" y="374" class="line">A/m, A/V (Бк/кг, Бк/л) —</text>
+  <text x="1154" y="392" class="line">масса/объём из SampleInfo;</text>
+  <text x="1154" y="410" class="line">сравнение с нормативами,</text>
+  <text x="1154" y="428" class="line">заключение</text>
+
+  <rect x="1410" y="310" width="210" height="170" rx="8" class="stage newbox"/>
+  <text x="1424" y="334" class="title">6 · Результат</text>
+  <text x="1424" y="356" class="line">A ± σ, МДА, удельные,</text>
+  <text x="1424" y="374" class="line">заключение;</text>
+  <text x="1424" y="392" class="line">снапшот: ε, I, версии,</text>
+  <text x="1424" y="410" class="line">зоны, фон, масса</text>
+  <text x="1424" y="432" class="line">СОХРАНЯЕТСЯ; пересчёт —</text>
+  <text x="1424" y="450" class="line">явное действие</text>
 
   <!-- поток конвейера -->
-  <path d="M 280 385 L 320 385" class="flow"/>
-  <path d="M 560 385 L 600 385" class="flow"/>
-  <path d="M 860 385 L 900 385" class="flow"/>
-  <path d="M 1140 385 L 1180 385" class="flow"/>
+  <path d="M 270 385 L 310 385" class="flow"/>
+  <path d="M 540 385 L 580 385" class="flow"/>
+  <path d="M 830 385 L 870 385" class="flow"/>
+  <path d="M 1100 385 L 1140 385" class="flow"/>
+  <path d="M 1370 385 L 1410 385" class="flow"/>
 
   <!-- сущности -> этапы -->
   <path d="M 160 200 L 160 310" class="arrow"/>
   <text x="168" y="262" class="lbl">калибровки</text>
-  <path d="M 460 210 L 460 310" class="arrow"/>
-  <text x="468" y="262" class="lbl">выбор</text>
+  <path d="M 440 210 L 440 310" class="arrow"/>
+  <text x="448" y="262" class="lbl">выбор</text>
   <path d="M 700 200 L 700 310" class="arrow"/>
   <text x="708" y="262" class="lbl">зоны</text>
-  <path d="M 960 210 L 960 270 L 840 270 L 840 310" class="arrow"/>
-  <text x="852" y="292" class="lbl">набор</text>
-  <path d="M 1060 210 L 1060 310" class="arrow"/>
-  <text x="1068" y="262" class="lbl">I линий</text>
-  <path d="M 560 210 L 560 250 L 930 250 L 930 310" class="arrow"/>
+  <path d="M 960 210 L 960 270 L 810 270 L 810 310" class="arrow"/>
+  <text x="822" y="292" class="lbl">набор</text>
+  <path d="M 1040 210 L 1040 310" class="arrow"/>
+  <text x="1048" y="262" class="lbl">I линий</text>
+  <path d="M 560 210 L 560 250 L 900 250 L 900 310" class="arrow"/>
   <text x="592" y="243" class="lbl">ε(E) выбранной геометрии</text>
+  <path d="M 1430 190 L 1250 190 L 1250 310" class="arrow"/>
+  <text x="1262" y="262" class="lbl">пороги</text>
 
   <!-- НИЖНИЙ РЯД: конструктор -->
-  <rect x="600" y="540" width="260" height="100" rx="8" class="box"/>
-  <text x="614" y="564" class="title">Конструктор (ROI Wizard)</text>
-  <text x="614" y="586" class="line">генерирует ROIConfig</text>
-  <text x="614" y="604" class="line">и NuclideSet по nucdb;</text>
-  <text x="614" y="622" class="line">импорт кривых → Geometry</text>
+  <rect x="580" y="540" width="260" height="100" rx="8" class="box"/>
+  <text x="594" y="564" class="title">Конструктор (ROI Wizard)</text>
+  <text x="594" y="586" class="line">генерирует ROIConfig</text>
+  <text x="594" y="604" class="line">и NuclideSet по nucdb;</text>
+  <text x="594" y="622" class="line">импорт кривых → Geometry</text>
 
-  <path d="M 860 580 L 885 580 L 885 135 L 920 135" class="arrow"/>
-  <path d="M 885 135 L 885 130 L 870 130" class="arrow"/>
-  <text x="893" y="240" class="lbl" transform="rotate(-90 893 240)">генерирует</text>
-  <path d="M 860 615 L 1170 615 L 1170 125 L 1220 125" class="arrow"/>
-  <text x="1178" y="248" class="lbl" transform="rotate(-90 1178 248)">читает</text>
+  <path d="M 840 580 L 850 580 L 850 200" class="arrow"/>
+  <path d="M 850 240 L 940 240 L 940 210" class="arrow"/>
+  <text x="858" y="430" class="lbl" transform="rotate(-90 858 430)">генерирует</text>
+  <path d="M 840 615 L 1120 615 L 1120 240 L 1290 240 L 1290 170" class="arrow"/>
+  <text x="1128" y="430" class="lbl" transform="rotate(-90 1128 430)">читает</text>
 </svg>
