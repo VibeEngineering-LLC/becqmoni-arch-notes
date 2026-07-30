@@ -40,12 +40,17 @@ img { max-width: 100%; }
 <p>Подписи: <strong>русская из ru.resx / английская из neutral resx</strong>. Если русского ключа в ru.resx нет — пункт
 и в русской локали показывается по-английски (WinForms fallback), это помечено «(RU-ключа нет)».
 Все строки/номера указаны в файлах каталога <code>&lt;клон BecqMoni&gt;\BecquerelMonitor\</code>.</p>
-<p>Главное меню MainForm: пять топ-пунктов (<code>MainForm.Designer.cs:113-118</code>). Собственного тулбара у MainForm <strong>нет</strong> —
-только MenuStrip и StatusStrip; тулбары живут в окне спектра DocEnergySpectrum (см. раздел «Тулбары»).</p>
+<p>Главное меню MainForm: пять топ-пунктов (<code>MainForm.Designer.cs:114-118</code>). Полоса меню — не штатный MenuStrip,
+а <code>BecquerelMonitor.MenuStripEx</code> (<code>MainForm.Designer.cs:23</code>, класс <code>MenuStripEx.cs:7</code>) со свойствами ClickThrough и
+SuppressHighlighting (оба выставлены в Designer, <code>:112, :121</code>): первый клик по меню неактивного окна проходит сразу,
+без «клика активации». Собственного тулбара у MainForm <strong>нет</strong> — только MenuStrip и StatusStrip; тулбары живут
+в окне спектра DocEnergySpectrum (см. раздел «Тулбары»). В части RU-подписей мнемоники (<code>&amp;</code>) опущены
+(«Импорт» вместо «&amp;Импорт») — амперсанды в таблицах ниже даны по ресурсам, где они есть.</p>
 <hr />
 <h2>1. Главное меню</h2>
 <h3>Файл / &amp;File (<code>fileFToolStripMenuItem</code>)</h3>
-<p>При раскрытии пункты Сохранить/Закрыть/Объединение включаются по наличию активного документа — <code>MainForm.cs:1736</code>.</p>
+<p>При раскрытии пункты Закрыть/Закрыть Всё/Объединение/Сохранить как включаются по наличию активного документа,
+а «Сохранить» — по <code>activeDocument != null &amp;&amp; Dirty</code> (<code>MainForm.cs:1738-1739</code>).</p>
 <ul>
 <li><strong>Новый / &amp;New</strong> — <code>Ctrl+N</code> — создаёт новый документ спектра (<code>documentManager.CreateDocument()</code>) и показывает его в док-панели — <code>MainForm.cs:920</code></li>
 <li><strong>Открыть... / &amp;Open...</strong> — <code>Ctrl+O</code> — OpenFileDialog (мультивыбор), каждый файл открывается <code>documentManager.OpenDocument()</code> — <code>MainForm.cs:949</code></li>
@@ -78,7 +83,7 @@ img { max-width: 100%; }
 при раскрытии: лимит спектров в файле, наличие фона, состояние записи — <code>MainForm.cs:1747</code>.</p>
 <ul>
 <li><strong>Новый / &amp;New</strong> — <code>AddNewSpectrum()</code>: добавляет новый спектр в активный документ, подтягивает фон из конфигурации устройства — <code>MainForm.cs:2871</code> (логика <code>MainForm.cs:2174</code>)</li>
-<li><strong>Удалить / &amp;Delete</strong> — <code>DeleteActiveSpectrum()</code>: удаляет активный спектр с подтверждением; последний спектр удалить нельзя — <code>MainForm.cs:2877</code> (логика <code>MainForm.cs:2251</code>)</li>
+<li><strong>Удалить / &amp;Delete</strong> — <code>DeleteActiveSpectrum()</code>: удаляет активный спектр с подтверждением; последний спектр удалить нельзя — <code>MainForm.cs:2877</code> (логика <code>MainForm.cs:2251</code>). <strong>ДЕФЕКТ:</strong> после закрытия последнего документа пункт остаётся серым до перезапуска — <code>Enabled=false</code> ставится в null-ветке (<code>MainForm.cs:1752</code>), а ветка <code>activeDocument != null</code> (<code>:1767-1783</code>) его не восстанавливает</li>
 <li><strong>Импорт из файла / &amp;Import from File</strong> — <code>LoadSpectrumFromFile()</code>: добавляет спектры из выбранных файлов в текущий документ — <code>MainForm.cs:2883</code> (логика <code>MainForm.cs:2339</code>)</li>
 <li><strong>&amp;Export Spectrum to File</strong> (RU-ключа <code>exportToFileStripMenuItem</code> нет; в ru.resx остался старый ключ <code>toolStripMenuItem1</code> = «Экспорт спектра в файл», он не применяется) — <code>SaveSpectrumToFile()</code> через SaveFileDialog — <code>MainForm.cs:2889</code> (логика <code>MainForm.cs:2477</code>)</li>
 <li><strong>Экспортировать спектр фона в файл / Export Background Spectrum to File</strong> — <code>SaveBGSpectrumToFile()</code>: сохраняет фоновый спектр активного документа в файл — <code>MainForm.cs:2894</code> (логика <code>MainForm.cs:2429</code>)</li>
@@ -86,12 +91,12 @@ img { max-width: 100%; }
 <li><strong>Изменить число каналов / Change channel number</strong> — диалог <code>ChanNumberChangeDialog</code> → <code>ConcatSpectrums()</code>: пересборка спектра (сжатие/восстановление каналов) в новый документ — <code>MainForm.cs:2940</code> (логика <code>MainForm.cs:1468</code>)</li>
 <li><strong>Ограничить энергию или канал / Cutoff energy or channel</strong> — диалог <code>SpectrumCutOffDialog</code> → <code>Cutoff()</code>: обрезка спектра по энергии или каналу в новый документ — <code>MainForm.cs:2967</code> (логика <code>MainForm.cs:3006</code>)</li>
 <li><strong>Нормализовать спектр по ROI / Normalize spectrum with ROI</strong> — диалог <code>SelectROIDialog</code> → <code>NormalizeSpectrum()</code>; доступен только при привязанной конфигурации устройства — <code>MainForm.cs:2904</code> (логика <code>MainForm.cs:1507</code>)</li>
-<li><strong>Применить коррекцию мёртвого времени / Apply dead time correction</strong> — диалог <code>SelectDeviceDialog</code> → пересчёт <code>LiveTime</code> по мёртвому времени выбранного устройства (<code>Utils.LiveTime.Calculate</code>) — <code>MainForm.cs:2913</code></li>
+<li><strong>Применить коррекцию мёртвого времени / Apply dead time correction</strong> — диалог <code>SelectDeviceDialog</code> → пересчёт <code>LiveTime</code> по мёртвому времени выбранного устройства (<code>Utils.LiveTime.Calculate</code>) — <code>MainForm.cs:2913</code>; доступен только при <code>MeasurementTime &gt; 0 &amp;&amp; TotalPulseCount &gt; 0</code> (<code>MainForm.cs:1774-1776</code>)</li>
 <li><strong>Автосохранение спектра / Autosave spectrum</strong> (флажок, CheckOnClick) — переключает <code>activeDocument.AutoSave</code>; при включении сразу сохраняет документ — <code>MainForm.cs:1675</code></li>
 <li>─────</li>
 <li><strong>Начало измерения / &amp;Start Measurement</strong> — <code>Ctrl+M</code> — <code>dcControlPanel.StartMeasurement()</code> — <code>MainForm.cs:3038</code></li>
 <li><strong>Остановить измерение / S&amp;top Measurement</strong> — <code>Ctrl+P</code> — <code>dcControlPanel.StopMeasurement()</code> — <code>MainForm.cs:3044</code></li>
-<li><strong>Очистить спектр / &amp;Clear Spectrum</strong> — <code>dcControlPanel.ClearMeasurementResult()</code> — <code>MainForm.cs:3050</code></li>
+<li><strong>Очистить спектр / &amp;Clear Spectrum</strong> — <code>dcControlPanel.ClearMeasurementResult()</code> — <code>MainForm.cs:3050</code>. <strong>ДЕФЕКТ:</strong> тот же, что у «Удалить» — после закрытия последнего документа серый до перезапуска (<code>MainForm.cs:1756</code>, восстановления в <code>:1767-1783</code> нет)</li>
 </ul>
 <h3>Вид / &amp;View (<code>viewTToolStripMenuItem</code>)</h3>
 <p>Первые девять пунктов показывают докируемые панели (см. раздел «Панели DockContent»).</p>
@@ -169,7 +174,9 @@ img { max-width: 100%; }
 </tr>
 </tbody>
 </table>
-<p>Других <code>ShortcutKeys</code> в <code>MainForm.Designer.cs</code> нет.</p>
+<p>Других <code>ShortcutKeys</code> в <code>MainForm.Designer.cs</code> нет. Это сводка именно главного меню: вне меню
+клавиши перехватываются ещё в <code>ProcessCmdKey</code> мастера ROI (<code>RoiWizardForm.cs:1035-1042</code>) и его
+справки (<code>RoiWizard\HelpForm.cs:94-101</code>).</p>
 <hr />
 <h2>2. Тулбары (окно спектра DocEnergySpectrum)</h2>
 <p>У MainForm тулбара нет. Каждое окно спектра несёт два ToolStrip в нижней панели
@@ -200,14 +207,20 @@ img { max-width: 100%; }
 <h3>2.1 Статус-строка мастера ROI (StatusStrip с кнопками)</h3>
 <p><code>RoiWizard\RoiWizardForm.Designer.cs:184-188, 980-991</code>: три <code>ToolStripButton</code> — Справка (<code>buttonHelp</code>, справа),
 «◂ Назад» (<code>buttonStepPrev</code>), «Вперёд ▸» (<code>buttonStepNext</code>); RU-тексты из <code>RoiWizardStrings</code>, обработчики
-<code>RoiWizardForm.cs:645-647</code> (<code>ShowHelp()</code>, <code>GoStep(±1)</code>), enable/текст-логика :2413-2420. Уточнение к тезису
+<code>RoiWizardForm.cs:645-647</code> (<code>ShowHelp()</code>, <code>GoStep(±1)</code>), enable/текст-логика :2413-2420. «◂ Назад»/«Вперёд ▸» —
+краевые подписи: на средних вкладках <code>RoiWizardForm.cs:2415-2420</code> подставляет имена соседних шагов.
+Кнопка Справка открывает <code>RoiWizard\HelpForm</code> — <strong>докируемое окно</strong> (<code>HelpForm.cs:27</code> наследует DockContent;
+показ <code>ShowHelp()</code> :2368-2389, <code>Show(this.DockPanel, bounds)</code>), см. таблицу §4. Уточнение к тезису
 «тулбары живут только в окне спектра»: ToolStrip-кнопки есть и здесь.</p>
 <h2>3. Контекстные меню</h2>
 <p>Всего в проекте пять <code>ContextMenuStrip</code> (по grep): <code>DocEnergySpectrum</code>, <code>DCPeakDetectionView</code>, <code>ToolWindow</code>,
 <code>Utils\CalibrationGraph</code>, <code>Utils\FWHMCalibrationGraph</code>. Шестое семейство — библиотечный <code>HeaderContextMenu</code> XPTable
 (наследник старого ContextMenu, потому grep по ContextMenuStrip его не видит): правый клик по заголовку колонки
-любой таблицы приложения — переключение видимости колонок + «More...» (<code>XPTable\Models\Table.cs:832, 7176-7178</code>;
-включён по умолчанию). В клиентской области списка спектров (<code>DCSpectrumListView</code>) и таблицы результатов
+любой таблицы приложения — переключение видимости колонок (<code>XPTable\Models\Table.cs:832, 7176-7178</code>;
+включён по умолчанию, отключить нечем — <code>Table.EnableHeaderContextMenu</code> :4242 не вызывается нигде; меню
+пересобирается при каждом показе — <code>HeaderContextMenu.cs:113</code> <code>MenuItems.Clear()</code>). Пункт «More...» в этом
+приложении не появляется никогда: он добавляется начиная с одиннадцатой колонки (<code>HeaderContextMenu.cs:147-167</code>,
+<code>if (i == 10)</code>), а максимум по всем 19 таблицам дерева — 7 колонок (<code>DCPeakDetectionView.Designer.cs:96</code>). В клиентской области списка спектров (<code>DCSpectrumListView</code>) и таблицы результатов
 (<code>DCResultView</code>) контекстных меню нет — там кнопки (Новый/Удалить/Импорт/Экспорт и «Ред. ROI...»).</p>
 <h3>3.1 Спектр — правый клик по окну DocEnergySpectrum (<code>contextMenuStrip1</code>, <code>DocEnergySpectrum.Designer.cs:599</code>)</h3>
 <ul>
@@ -223,7 +236,7 @@ img { max-width: 100%; }
 <li><strong>Сохранить (&amp;S) / Save (&amp;S)</strong> — событие <code>SaveDocument</code> — <code>DocEnergySpectrum.cs:517</code></li>
 <li><strong>Закрыть(&amp;C) / Close (&amp;C)</strong> (в ресурсе без пробела) — событие <code>CloseDocument</code> — <code>DocEnergySpectrum.cs:523</code></li>
 </ul>
-<h3>3.2 Таблица обнаруженных пиков — DCPeakDetectionView (<code>contextMenuStrip1</code>, <code>DCPeakDetectionView.Designer.cs:167</code>)</h3>
+<h3>3.2 Панель обнаружения пиков — DCPeakDetectionView (<code>contextMenuStrip1</code>, <code>DCPeakDetectionView.Designer.cs:167</code>; меню присвоено панели целиком — <code>Designer.cs:234</code>, не только таблице)</h3>
 <p>Оба пункта активны только при выделенных строках (<code>DCPeakDetectionView.cs:486</code>).
 - <strong>Добавить в калибровку / Add in calibration</strong> — для каждой выбранной строки берёт канал и энергию (минус ошибка) и зовёт <code>mainForm.addCalibration()</code> — <code>DCPeakDetectionView.cs:447</code>
 - <strong>Поиск в Базе Изотопов / Search Isotope Base</strong> — <code>mainForm.CallNucBaseSearch(энергия строки)</code>: открывает Базу изотопов с поиском по энергии — <code>DCPeakDetectionView.cs:480</code></p>
@@ -232,7 +245,7 @@ img { max-width: 100%; }
 <li><strong>Сохранить новые точки калибровки / Save new calibration points</strong> — записывает отредактированные точки в <code>ActiveResultData.CalibrationPoints</code> — <code>Utils\CalibrationGraph.cs:360</code></li>
 <li><strong>Отменить изменения / Reset modifications</strong> — откат точек и полинома к исходным — <code>Utils\CalibrationGraph.cs:367</code></li>
 </ul>
-<h3>3.4 График FWHM-калибровки — FWHMCalibrationGraph (отдельное модальное окно, кнопка из DCFwhmCalibrationView — <code>DCFwhmCalibrationView.cs:906-910</code>, ShowDialog; <code>Utils\FWHMCalibrationGraph.Designer.cs</code>). RU-ключей нет — файла <code>FWHMCalibrationGraph.ru.resx</code> не существует, в русской локали пункты по-английски:</h3>
+<h3>3.4 График FWHM-калибровки — FWHMCalibrationGraph (отдельное модальное окно, кнопка из DCFwhmCalibrationView — <code>DCFwhmCalibrationView.cs:906-910</code>, ShowDialog; <code>Utils\FWHMCalibrationGraph.Designer.cs</code>). RU-ключей нет — файл <code>FWHMCalibrationGraph.ru.resx</code> в клоне на d80c7ee отсутствует, в русской локали пункты по-английски:</h3>
 <ul>
 <li><strong>Save new calibration points (Сохранить новые точки)</strong> — пишет пики в <code>ActiveResultData.FwhmCalibration.CalibrationPeaks</code> — <code>Utils\FWHMCalibrationGraph.cs:381</code></li>
 <li><strong>Reset modifications (Отменить изменения)</strong> — откат — <code>Utils\FWHMCalibrationGraph.cs:389</code></li>
@@ -240,11 +253,15 @@ img { max-width: 100%; }
 <h3>3.5 ToolWindow (базовый класс панелей) — мёртвое меню</h3>
 <p><code>ToolWindow.Designer.cs:30</code> создаёт <code>contextMenuStrip1</code> с пунктами <strong>Option&amp;1 / Option&amp;2 / Option&amp;3</strong>,
 но меню никому не присвоено (<code>ContextMenuStrip</code>/<code>TabPageContextMenuStrip</code> не назначаются) и обработчиков Click нет —
-наследие примера DockPanel Suite, в интерфейсе не появляется.</p>
+в интерфейсе не появляется (атрибуция «наследие примера DockPanel Suite» — правдоподобное происхождение,
+из дерева не проверяется).</p>
 <hr />
 <h2>4. Панели DockContent</h2>
-<p>Все инструментальные панели — наследники <code>ToolWindow : DockContent</code> (WeifenLuo DockPanel Suite);
-создаются при старте в <code>MainForm.InitializeToolViews()</code> — <code>MainForm.cs:252</code> — и восстанавливаются из XML-раскладки
+<p>Инструментальные панели — наследники <code>ToolWindow : DockContent</code> (WeifenLuo DockPanel Suite), кроме трёх:
+<code>DocEnergySpectrum</code> (<code>DocEnergySpectrum.cs:11</code>), <code>RoiWizard.RoiWizardForm</code> (<code>RoiWizardForm.cs:23</code>) и
+<code>RoiWizard.HelpForm</code> (<code>HelpForm.cs:27</code>) наследуют <code>DockContent</code> напрямую. Создание: восемь панелей — при старте
+в <code>MainForm.InitializeToolViews()</code> (<code>MainForm.cs:252-269</code>); <code>DCResultView</code> — по требованию, до 4 экземпляров
+(<code>:897</code>); <code>RoiWizardForm</code> — лениво при первом открытии (<code>:1288</code>); раскладка восстанавливается из XML
 (<code>ExpertMode.xml</code>, режимы «Пользовательский/Экспертный»). Повторное открытие — из меню <strong>Вид</strong>.</p>
 <table>
 <thead>
@@ -272,7 +289,7 @@ img { max-width: 100%; }
 <td><code>DCSpectrumListView</code></td>
 <td>Список спектров / Spectrum List</td>
 <td>Вид → Список спектров (<code>:808</code>)</td>
-<td>кнопки Новый/Удалить/Импорт/Экспорт</td>
+<td>шесть кнопок: Новый/Удалить/Импорт/Экспорт + две иконочные button5/button6 (Resources.Up/Down — перемещение по списку)</td>
 </tr>
 <tr>
 <td><code>DCEnergyCalibrationView</code></td>
@@ -322,6 +339,12 @@ img { max-width: 100%; }
 <td>Инструменты → Конструктор ROI... (<code>:1271</code>)</td>
 <td><strong>roi-wizard</strong>; DockContent с HideOnClose, один экземпляр, вкладки «1 · Изотопы», «2 · Линии», «3 · Оформление и создание»; восстанавливается из раскладки через <code>GetContentFromPersistString</code></td>
 </tr>
+<tr>
+<td><code>RoiWizard.HelpForm</code></td>
+<td>Справка конструктора</td>
+<td>кнопка Справка статус-строки мастера (<code>RoiWizardForm.cs:645</code> → <code>ShowHelp()</code> :2368-2389)</td>
+<td><strong>roi-wizard</strong>; двенадцатая докируемая панель; <strong>ДЕФЕКТ:</strong> <code>MainForm.GetContentFromPersistString</code> (<code>MainForm.cs:350-441</code>) её не обрабатывает — сохранённая раскладка с открытой справкой при восстановлении вернёт null</td>
+</tr>
 </tbody>
 </table>
 <p>Не DockContent (обычные окна): <code>NucBase.NucBase</code> (База изотопов), <code>ROIConfigForm</code>, <code>NuclideDefinitionForm</code>,
@@ -337,12 +360,14 @@ img { max-width: 100%; }
 <ul>
 <li><strong>Осиротевшие RU-ключи в <code>MainForm.ru.resx</code></strong>: <code>toolStripMenuItem1</code> («&amp;Экспорт спектра в файл»), <code>toolStripMenuItem2</code> («Отчёт...»), <code>toolStripMenuItem3</code> («Статус измерений»), <code>toolStripMenuItem4</code> («&amp;Калибровка энергии»), <code>toolStripMenuItem5</code> («Скорость С&amp;чёта») — пунктов с такими именами в <code>MainForm.Designer.cs</code> нет (пункты были переименованы или удалены; «Отчёт...» и «Статус измерений» в текущем меню отсутствуют вовсе). Следствие: пункт «Export Spectrum to File» в русской локали отображается по-английски.</li>
 <li><strong>Пункты без русских подписей</strong> (fallback на EN в русской локали): LSRM EffCalcMC.txt -&gt; ROI, SpectraLine GBS, (OS Default), English, Russian, Export Spectrum to File.</li>
-<li><strong><code>jaJPToolStripMenuItem</code></strong> — имя от японской локали оригинального BecquerelMonitor; фактический текст «Russian», ставит <code>ru-RU</code>.</li>
+<li><strong><code>jaJPToolStripMenuItem</code></strong> — фактический текст «Russian», ставит <code>ru-RU</code> (атрибуция «имя от японской локали оригинального BecquerelMonitor» — правдоподобна, из дерева не проверяется).</li>
 <li>Осиротевший ключ <code>toolStripSplitButton7.ToolTipText</code> = «Выбрать отображение фона» (<code>DocEnergySpectrum.ru.resx:294</code>) — кнопка переименована в <code>toolStripSplitButtonBgMode</code>.</li>
 <li>Мёртвый обработчик <code>ToolStripStatusLabel2_Click</code> (<code>MainForm.cs:2213-2222</code>, опрос температуры AtomSpectra кликом по метке статус-строки) — нигде не подписан, недостижим.</li>
 <li>Оба режима раскладки делят один файл: <code>LayoutConfigFile()</code> всегда возвращает <code>ExpertMode.xml</code> (<code>MainForm.cs:3229-3232</code>).</li>
 <li><strong>Файл → Экспорт → для FWHM</strong> — числа 530/627/780 кэВ и кодировка вывода 932 (Shift-JIS) зашиты в код (<code>MainForm.cs:3056-3085</code>); назначение — экспорт окрестности пика 662 кэВ для внешней оценки FWHM, но в меню это никак не пояснено.</li>
 <li><strong>ToolWindow.contextMenuStrip1 (Option1/2/3)</strong> — заготовка без обработчиков, нигде не привязана.</li>
+<li><strong>Мёртвое семейство <code>ToolStripEnergyCalibration*</code></strong>: <code>ToolStripEnergyCalibrationButton.cs:11</code> (наследник ToolStripDropDownButton), <code>ToolStripEnergyCalibration.cs:7</code> (ToolStripDropDown), <code>ToolStripEnergyCalibrationControl.{cs,Designer.cs,resx}</code> — все включены в <code>.csproj</code> (строки 614-624, 1171-1172), но ни одного <code>new</code> и ни одной ссылки из Designer во всём дереве.</li>
+<li>Единственный элемент интерфейса, зависящий от типа прибора, — не пункт меню, а кнопка <code>attachBtn</code> панели управления: видима только при <code>DeviceType == "AtomSpectraVCP"</code> (<code>DCControlPanel.cs:332-338</code>, стартовое состояние false <code>:43</code>).</li>
 <li>Вкладка мастера в этой ветке называется «2 · Линии» (<code>RoiWizard\RoiWizardStrings.ru.resx</code>); переименование «2 · Цепочки» существует только в веб-версии конструктора, в WinForms-порт не переносилось.</li>
 </ul>
 </body>
