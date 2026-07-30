@@ -82,10 +82,10 @@
 
   <!-- ОКНА РЕЗУЛЬТАТА -->
   <rect x="790" y="182" width="250" height="100" rx="8" class="box"/>
-  <text x="804" y="206" class="title">Окно результатов ROI</text>
-  <text x="804" y="226" class="line">DCResultView — как сейчас:</text>
-  <text x="804" y="244" class="line">таблица зон (счёт, A, МДА),</text>
-  <text x="804" y="262" class="line">до 4 экземпляров</text>
+  <text x="804" y="206" class="title">«Результат измерений»</text>
+  <text x="804" y="226" class="line">DCResultView, по ROI при наличии</text>
+  <text x="804" y="244" class="line">конфига: зоны — Результат/Неопр./MDA;</text>
+  <text x="804" y="262" class="line">единицы cps/Бк, коррекция распада</text>
 
   <rect x="790" y="310" width="250" height="104" rx="8" class="box"/>
   <text x="804" y="332" class="title">Разрозненный вывод — сейчас</text>
@@ -96,10 +96,10 @@
 
   <rect x="790" y="450" width="250" height="120" rx="8" class="newbox"/>
   <text x="804" y="474" class="title">Окно активности (НОВОЕ)</text>
-  <text x="804" y="494" class="line">консолидирует спектрометрический</text>
-  <text x="804" y="512" class="line">вывод: по нуклидам A ± σ, МДА,</text>
-  <text x="804" y="530" class="line">вклад линий — как «Активность</text>
-  <text x="804" y="548" class="line">радионуклидов» SL; живой пересчёт</text>
+  <text x="804" y="494" class="line">инструмента в стиле SL сейчас НЕТ;</text>
+  <text x="804" y="512" class="line">по нуклидам: A ± σ, МДА, вклад линий</text>
+  <text x="804" y="530" class="line">— как «Активность радионуклидов» SL;</text>
+  <text x="804" y="548" class="line">живой пересчёт при смене набора</text>
 
   <path d="M 730 227 L 790 227" class="arrow"/>
   <path d="M 730 358 L 790 358" class="arrow"/>
