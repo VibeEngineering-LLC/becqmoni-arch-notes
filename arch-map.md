@@ -384,7 +384,8 @@
    бросает `KeyNotFoundException`.
 6. **ROIReferenceData.Reference — ссылка по имени области** внутри того же конфига
    (`MeasurementResultManager.cs:374` `if (roidefinitionData.Name == roireferenceData.Reference)`).
-   Переименование области или дубль имени рвёт/двоит ссылку без диагностики; ненайденная
+   Переименование области рвёт ссылку без диагностики; при дубле имени молча берётся
+   первая совпавшая область (`break` :374-386); ненайденная
    ссылка даёт вклад 0 молча (цикл просто не находит).
 7. **SelectROIDialog выбирает по имени** (`SelectROIDialog.cs:105`
    `ROIConfigDatas[i].Name == comboBox1.SelectedItem.ToString()`) — при совпадении имён
@@ -406,8 +407,11 @@
     `"Reference"`; операции `"Addition"`, `"Subtraction"`
     (`ROIPrimitiveDefinition.cs:120-126`, `MeasurementResultManager.cs:443-446`);
     типы приборов `"AudioInputDevice"`, `"AtomSpectraVCP"`, `"RadiaCode"`, `"Obsidian"`
-    (`DeviceType.cs:36-69`). Всё это — содержимое пользовательских XML: опечатка в файле
-    = KeyNotFound при загрузке (`ROIConfigManager.cs:90-91` — в per-file try).
+    (`DeviceType.cs:36-69`). Всё это — содержимое пользовательских XML. Опечатка в
+    примитиве/операции ROI = KeyNotFound при загрузке (`ROIConfigManager.cs:90-91` —
+    в per-file try); опечатка в типе прибора НЕ бросает — резолв через `TryGetValue`
+    с диалогом «Invalid device type» в рантайме (`MeasurementController.cs:224-228`,
+    `DeviceConfigForm.cs:432`).
 13. **Поля-близнецы ROI-запись ↔ NuclideDefinition.** При создании области из нуклида
     копируются Name, PeakEnergy, HalfLife, Intencity (`ROIConfigForm.cs:944-950`;
     `SetExporter.BuildRoiConfig` :51-60) и вычисляется K. Дальше копии живут независимо:
@@ -454,8 +458,9 @@
   (приборные наборы + `Ra-226 Intensities.xml`, `Th-232 Intensities.xml`),
   `config/device/` — 9 приборных конфигов, `config/NuclideDefinition.xml`,
   `config/layout/ExpertMode.xml`.
-- `BecquerelMonitor\nucdb.sqlite` — ядерная база (decay_radiations, nuclides, decay_chain +
-  добавленные families/xrf_elements/xrf_lines/chains/catalog_meta); открывается read-only
+- `BecquerelMonitor\nucdb.sqlite` — ядерная база (decay_radiations, nuclides, decay_chain,
+  families, nuclide_families, l_decays, cumulative_fission, thermal_cross_sect,
+  xrf_elements, xrf_lines, chains, catalog_meta); открывается read-only
   из текущего каталога (`NucBase/DataBase.cs:18-19`); потребители — NucBase-формы и
   `RoiWizard/NuclideCatalog` (:1-21, singleton :54-60).
 - `LSRM Geometries\` — модели и экспортированные кривые эффективности (формат импорта
@@ -473,11 +478,17 @@
    но ни одного читателя не найдено (grep по дереву); видимо, задел под «восстановление по
    имени», который не реализован.
 3. Насколько `ResultData_097b`/`ResultDataFile_097b`/`ResultData_093b` ещё встречаются у
-   пользователей — из кода не видно; ветки миграции живы (`DocumentManager.cs:446-520`).
+   пользователей — из кода не видно. Уточнение (второй проход 30.07): жив только импорт
+   093b (`ImportDocument093b`, `DocumentManager.cs:446-521`, вызов `MainForm.cs:2704`);
+   конструкторы миграции документов 097b (`ResultDataFile.cs:50`, `ResultData.cs:375`) —
+   мёртвый код без единого вызова; живой 097b-путь остался только у device-конфигов
+   (`DeviceConfigManager.cs:82-88`).
 4. Формат N42 (три схемы в `N42/`) прослежен только до `Util.ImportFromN42`; детальная
    карта полей N42 ↔ ResultData не строилась.
-5. Точная семантика `EnergySpectrum.SerialNumber` (кто пишет при записи с прибора) — не
-   прослежена по всем контроллерам (RadiaCode/Obsidian BLE-тракты не читались построчно).
+5. ЗАКРЫТО (второй проход 30.07): `EnergySpectrum.SerialNumber` не пишет ни один
+   контроллер (grep по дереву) — поле живёт только через десериализацию готовых
+   документов и `Clone()` (:212); N42-импорт пишет серийник в `SampleInfo.Note`
+   (`N42/Util.cs:205`), не в спектр.
 6. `MeasurementResultCollection` нигде не сериализуется — сохранение результатов
    измерения в файл, по-видимому, происходит только косвенно (через кэш в
    ROIDefinitionData ничего в XML не уходит: поля XmlIgnore). Экспорт таблицы результатов

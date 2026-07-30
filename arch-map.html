@@ -542,7 +542,8 @@ img { max-width: 100%; }
    бросает <code>KeyNotFoundException</code>.</li>
 <li><strong>ROIReferenceData.Reference — ссылка по имени области</strong> внутри того же конфига
    (<code>MeasurementResultManager.cs:374</code> <code>if (roidefinitionData.Name == roireferenceData.Reference)</code>).
-   Переименование области или дубль имени рвёт/двоит ссылку без диагностики; ненайденная
+   Переименование области рвёт ссылку без диагностики; при дубле имени молча берётся
+   первая совпавшая область (<code>break</code> :374-386); ненайденная
    ссылка даёт вклад 0 молча (цикл просто не находит).</li>
 <li><strong>SelectROIDialog выбирает по имени</strong> (<code>SelectROIDialog.cs:105</code>
    <code>ROIConfigDatas[i].Name == comboBox1.SelectedItem.ToString()</code>) — при совпадении имён
@@ -564,8 +565,11 @@ img { max-width: 100%; }
     <code>"Reference"</code>; операции <code>"Addition"</code>, <code>"Subtraction"</code>
     (<code>ROIPrimitiveDefinition.cs:120-126</code>, <code>MeasurementResultManager.cs:443-446</code>);
     типы приборов <code>"AudioInputDevice"</code>, <code>"AtomSpectraVCP"</code>, <code>"RadiaCode"</code>, <code>"Obsidian"</code>
-    (<code>DeviceType.cs:36-69</code>). Всё это — содержимое пользовательских XML: опечатка в файле
-    = KeyNotFound при загрузке (<code>ROIConfigManager.cs:90-91</code> — в per-file try).</li>
+    (<code>DeviceType.cs:36-69</code>). Всё это — содержимое пользовательских XML. Опечатка в
+    примитиве/операции ROI = KeyNotFound при загрузке (<code>ROIConfigManager.cs:90-91</code> —
+    в per-file try); опечатка в типе прибора НЕ бросает — резолв через <code>TryGetValue</code>
+    с диалогом «Invalid device type» в рантайме (<code>MeasurementController.cs:224-228</code>,
+    <code>DeviceConfigForm.cs:432</code>).</li>
 <li><strong>Поля-близнецы ROI-запись ↔ NuclideDefinition.</strong> При создании области из нуклида
     копируются Name, PeakEnergy, HalfLife, Intencity (<code>ROIConfigForm.cs:944-950</code>;
     <code>SetExporter.BuildRoiConfig</code> :51-60) и вычисляется K. Дальше копии живут независимо:
@@ -638,8 +642,9 @@ img { max-width: 100%; }
   (приборные наборы + <code>Ra-226 Intensities.xml</code>, <code>Th-232 Intensities.xml</code>),
   <code>config/device/</code> — 9 приборных конфигов, <code>config/NuclideDefinition.xml</code>,
   <code>config/layout/ExpertMode.xml</code>.</li>
-<li><code>BecquerelMonitor\nucdb.sqlite</code> — ядерная база (decay_radiations, nuclides, decay_chain +
-  добавленные families/xrf_elements/xrf_lines/chains/catalog_meta); открывается read-only
+<li><code>BecquerelMonitor\nucdb.sqlite</code> — ядерная база (decay_radiations, nuclides, decay_chain,
+  families, nuclide_families, l_decays, cumulative_fission, thermal_cross_sect,
+  xrf_elements, xrf_lines, chains, catalog_meta); открывается read-only
   из текущего каталога (<code>NucBase/DataBase.cs:18-19</code>); потребители — NucBase-формы и
   <code>RoiWizard/NuclideCatalog</code> (:1-21, singleton :54-60).</li>
 <li><code>LSRM Geometries\</code> — модели и экспортированные кривые эффективности (формат импорта
@@ -656,11 +661,17 @@ img { max-width: 100%; }
    но ни одного читателя не найдено (grep по дереву); видимо, задел под «восстановление по
    имени», который не реализован.</li>
 <li>Насколько <code>ResultData_097b</code>/<code>ResultDataFile_097b</code>/<code>ResultData_093b</code> ещё встречаются у
-   пользователей — из кода не видно; ветки миграции живы (<code>DocumentManager.cs:446-520</code>).</li>
+   пользователей — из кода не видно. Уточнение (второй проход 30.07): жив только импорт
+   093b (<code>ImportDocument093b</code>, <code>DocumentManager.cs:446-521</code>, вызов <code>MainForm.cs:2704</code>);
+   конструкторы миграции документов 097b (<code>ResultDataFile.cs:50</code>, <code>ResultData.cs:375</code>) —
+   мёртвый код без единого вызова; живой 097b-путь остался только у device-конфигов
+   (<code>DeviceConfigManager.cs:82-88</code>).</li>
 <li>Формат N42 (три схемы в <code>N42/</code>) прослежен только до <code>Util.ImportFromN42</code>; детальная
    карта полей N42 ↔ ResultData не строилась.</li>
-<li>Точная семантика <code>EnergySpectrum.SerialNumber</code> (кто пишет при записи с прибора) — не
-   прослежена по всем контроллерам (RadiaCode/Obsidian BLE-тракты не читались построчно).</li>
+<li>ЗАКРЫТО (второй проход 30.07): <code>EnergySpectrum.SerialNumber</code> не пишет ни один
+   контроллер (grep по дереву) — поле живёт только через десериализацию готовых
+   документов и <code>Clone()</code> (:212); N42-импорт пишет серийник в <code>SampleInfo.Note</code>
+   (<code>N42/Util.cs:205</code>), не в спектр.</li>
 <li><code>MeasurementResultCollection</code> нигде не сериализуется — сохранение результатов
    измерения в файл, по-видимому, происходит только косвенно (через кэш в
    ROIDefinitionData ничего в XML не уходит: поля XmlIgnore). Экспорт таблицы результатов
