@@ -233,7 +233,7 @@ img { max-width: 100%; }
 <td>DeviceConfigInfo.EfficencyROIGuid → ROIConfigData</td>
 <td><strong>Guid-строка</strong></td>
 <td><code>DeviceConfigForm.cs:1715</code> (сброс), :1724 (выбор через словарь index→guid <code>effROIdic</code> :620); <code>SelectROIDialog.cs:111</code> (галочка «привязать к прибору»)</td>
-<td><code>DocEnergySpectrum.CreateResultData</code> :451-457 (кладёт кривую в <code>ResultData.ROIConfig</code> нового спектра), <code>DCPeakDetectionView.BoundEfficiencyConfig</code> :49-58 (в фиттер — только при <code>ROIConfig.Guid == EfficencyROIGuid</code> <strong>И <code>config.HasEfficiency</code></strong> :57, иначе null), <code>DeviceConfigForm.cs:610-612</code>, <code>SelectROIDialog.cs:50-53</code></td>
+<td><code>DocEnergySpectrum.CreateResultData</code> :451-458 (при наличии привязки кладёт кривую в <code>ResultData.ROIConfig</code>; else-ветка :455-458 кладёт <code>ROIConfigList[0]</code> — произвольный конфиг, НЕ кривую), <code>DCPeakDetectionView.BoundEfficiencyConfig</code> :49-58 (в фиттер — только при <code>ROIConfig.Guid == EfficencyROIGuid</code> <strong>И <code>config.HasEfficiency</code></strong> :57, иначе null), <code>DeviceConfigForm.cs:610-612</code>, <code>SelectROIDialog.cs:50-53</code></td>
 </tr>
 <tr>
 <td>4</td>
@@ -254,7 +254,7 @@ img { max-width: 100%; }
 <td>Линия → цепочка распада</td>
 <td><strong>конвенция в строке Name</strong>: текст в ПОСЛЕДНИХ скобках = имя корня («Bi-214 (Ra-226)» → «Ra-226»), без скобок — имя целиком</td>
 <td><code>NucBase/NucBase.cs:501-504</code> (импорт ряда: <code>name += " (корень)"</code>), <code>RoiWizard/SpectralLine.LibraryName</code> :69-105 (та же конвенция + спец-обработка слитых линий и суффиксов «X L»)</td>
-<td><code>LibraryPeakFitter.ChainOf</code> :952-962 → группировка bound-групп :604; <code>RoiWizard/SetChecker.ChainOf</code> :279</td>
+<td><strong>ДВЕ РАЗНЫЕ реализации</strong>: <code>LibraryPeakFitter.ChainOf</code> :952-962 (без скобок — имя целиком, <code>)</code> не обязан быть последним) → группировка bound-групп :604; <code>RoiWizard/SetChecker.ChainOf</code> :279-292 (без скобок — null, требует <code>)</code> последним символом :282). Это ровно возражение автора в PR #32</td>
 </tr>
 <tr>
 <td>7</td>
@@ -274,15 +274,15 @@ img { max-width: 100%; }
 <td>9</td>
 <td>DeviceConfigInfo.DeviceType → контроллер прибора</td>
 <td><strong>строка-Id</strong> → <code>DeviceType.DeviceTypeMap</code> → <code>Type</code> контроллера</td>
-<td>конструкторы/миграции (<code>DeviceConfigInfo.cs:423,506</code>)</td>
-<td><code>MeasurementController.CreateDeviceController</code> :215-260 (<code>Activator.CreateInstance</code>), <code>DeviceConfigForm.cs:432</code></td>
+<td><code>DeviceConfigForm.cs:785</code> (основной писатель — выбор в форме), конструкторы/миграции (<code>DeviceConfigInfo.cs:423,506</code>)</td>
+<td><code>MeasurementController.CreateDeviceController</code> :215-260 (<code>Activator.CreateInstance</code>), <code>DeviceConfigForm.cs:432</code>; ПЛЮС семь мест сравнивают DeviceType со строковыми литералами напрямую, мимо словаря: <code>DCControlPanel.cs:332</code>, <code>DeviceConfigForm.cs:1185, 1295, 1361, 1420, 1524, 1616</code> — новый тип прибора требует правки всех семи</td>
 </tr>
 <tr>
 <td>10</td>
 <td>Фиттер → кривая эффективности</td>
 <td>передача <code>ROIConfigData</code> параметром; гейт по Guid-равенству</td>
 <td><code>DCPeakDetectionView.cs:217</code> (снапшот: <code>ROIConfig = BoundEfficiencyConfig(...)</code> — глубокая копия)</td>
-<td><code>PeakDetector.AppendLibraryPeaks</code> :113-128 → <code>LibraryPeakFitter.Fit(..., resultData.ROIConfig)</code>; <code>EfficiencyShape.From</code> :313-329 → <code>ROIAriphmetics.CalculateEfficiency</code> (<code>Utils/ROIAriphmetics.cs:26-42</code>, монотонный кубический сплайн :175-176)</td>
+<td><code>PeakDetector.AppendLibraryPeaks</code> :113-128 → <code>LibraryPeakFitter.Fit(..., resultData.ROIConfig)</code>; <code>EfficiencyShape.From</code> :313-329 → <code>ROIAriphmetics.CalculateEfficiency</code> (<code>Utils/ROIAriphmetics.cs:26-42</code>, монотонный кубический сплайн :175-176); ЧЕТВЁРТЫЙ читатель кривой — нормировка спектра <code>Utils/SpectrumAriphmetics.cs:304-360</code> (:330, делит каналы на ε(E), обнуляет вне узлов; вызовы <code>MainForm.cs:1531,1536</code>, <code>EnergySpectrumView.cs:1238,1245,1727</code>) — кривая влияет и на отображаемый спектр</td>
 </tr>
 <tr>
 <td>11</td>
@@ -487,7 +487,7 @@ img { max-width: 100%; }
    :852-861 → device-XML.</li>
 <li>Калибровка (оценка): эталонный спектр (:2411-2434, <strong><code>ResultDataList[0]</code> без проверки</strong>
    :2430) + LSRM-кривая ε (:2436-2491) + ожидаемая МД →
-   <code>CalculateDoseRateConfig</code> :2522-2577: 16 фиксированных энергоинтервалов 40–3000 кэВ,
+   <code>CalculateDoseRateConfig</code> :2522-2577: 15 энергоинтервалов между 16 узлами 40–3000 кэВ (оба цикла до <code>energies.Length - 1</code>, :2535 и :2564),
    зашитые таблицы μ(E) и R→Sv :2524-2526; на выходе точки с <code>CPS=1</code> и
    <code>EtalonDoseRateValue = coeff·μ·(R→Sv)·E/ε</code> :2564-2574.</li>
 <li>Показание: <code>MainForm.ShowDoseRate</code> :634-647 (каждый тик при наличии точек) →

@@ -43,7 +43,7 @@
   - **Формат Atom Spectra v3 / Atom Spectra v3 format** — `ExportDocumentAtomSpectra(activeDocument)` — `MainForm.cs:2776`
   - **Файл &CSV / &CSV File** — `ExportDocumentToCsv(activeDocument)` — `MainForm.cs:1837`
   - **&Расширенный CSV файл / &Extended CSV File** — `ExportDocumentToECSV` с учётом текущего режима фона и сглаживания окна спектра — `MainForm.cs:1845`
-  - **для FWHM / for FWHM** — пишет `fwhm.txt`: участок 627–780 кэВ с вычетом линейной подложки, опорные точки 530 и 780 кэВ (жёстко зашитый диапазон пика Cs-137; кодировка файла 932/Shift-JIS) — `MainForm.cs:3056`
+  - **для FWHM / for FWHM** — **СКРЫТ В РАНТАЙМЕ** (`MainForm.cs:161` `Visible = false`) — пишет `fwhm.txt`: участок 627–780 кэВ с вычетом линейной подложки, опорные точки 530 и 780 кэВ (жёстко зашитый диапазон пика Cs-137; кодировка файла 932/Shift-JIS) — `MainForm.cs:3056`
 - ─────
 - **Выход / E&xit** — `Close()` главной формы — `MainForm.cs:752`
 
@@ -80,7 +80,7 @@
 - **Калибровка по FWHM / FWHM Calibration** — показывает `DCFwhmCalibrationView` — `MainForm.cs:670` (логика `MainForm.cs:661`)
 - **Результат измерений / Measurement &Result** — создаёт новый экземпляр `DCResultView` (не более 4 одновременно) — `MainForm.cs:897`
 - ─────
-- **Расположение / Layout** (`toolStripMenuItem7`, подменю; галка на текущем режиме — `MainForm.cs:3145`):
+- **Расположение / Layout** — **СКРЫТ В РАНТАЙМЕ**: `MainForm.cs:159-160` безусловно ставит `Visible = false` пункту и разделителю (осознанно, после InitializeComponent); режимы из меню недоступны. (`toolStripMenuItem7`, подменю; галка на текущем режиме — `MainForm.cs:3145`):
   - **Пользовательский режим / User Mode** — сохраняет текущую раскладку в XML, переключает `LayoutMode.UserMode`, пересоздаёт панели (`InitializeToolViews`) и грузит сохранённую раскладку — `MainForm.cs:3173`
   - **Экспертный режим / Expert Mode** — то же для `LayoutMode.ExpertMode` (файл `ExpertMode.xml` в каталоге раскладок) — `MainForm.cs:3201`
 - ─────
@@ -153,11 +153,21 @@
 
 ---
 
+### 2.1 Статус-строка мастера ROI (StatusStrip с кнопками)
+
+`RoiWizard\RoiWizardForm.Designer.cs:184-188, 980-991`: три `ToolStripButton` — Справка (`buttonHelp`, справа),
+«◂ Назад» (`buttonStepPrev`), «Вперёд ▸» (`buttonStepNext`); RU-тексты из `RoiWizardStrings`, обработчики
+`RoiWizardForm.cs:645-647` (`ShowHelp()`, `GoStep(±1)`), enable/текст-логика :2413-2420. Уточнение к тезису
+«тулбары живут только в окне спектра»: ToolStrip-кнопки есть и здесь.
+
 ## 3. Контекстные меню
 
 Всего в проекте пять `ContextMenuStrip` (по grep): `DocEnergySpectrum`, `DCPeakDetectionView`, `ToolWindow`,
-`Utils\CalibrationGraph`, `Utils\FWHMCalibrationGraph`. У списка спектров (`DCSpectrumListView`) и таблицы
-результатов (`DCResultView`) контекстных меню нет — там кнопки (Новый/Удалить/Импорт/Экспорт и «Ред. ROI...»).
+`Utils\CalibrationGraph`, `Utils\FWHMCalibrationGraph`. Шестое семейство — библиотечный `HeaderContextMenu` XPTable
+(наследник старого ContextMenu, потому grep по ContextMenuStrip его не видит): правый клик по заголовку колонки
+любой таблицы приложения — переключение видимости колонок + «More...» (`XPTable\Models\Table.cs:832, 7176-7178`;
+включён по умолчанию). В клиентской области списка спектров (`DCSpectrumListView`) и таблицы результатов
+(`DCResultView`) контекстных меню нет — там кнопки (Новый/Удалить/Импорт/Экспорт и «Ред. ROI...»).
 
 ### 3.1 Спектр — правый клик по окну DocEnergySpectrum (`contextMenuStrip1`, `DocEnergySpectrum.Designer.cs:599`)
 - **Увеличить масштаб (&M) / Increase selection (&M)** — `view.ZoominSelectedRegion()` — `DocEnergySpectrum.cs:1360`
@@ -170,20 +180,20 @@
   - **Создать ROI из выбранного диапазона (&S)** — событие `CreateNewROI` → MainForm открывает `ROIConfigForm` и создаёт определение ROI из границ выделения — `DocEnergySpectrum.cs:1366` → `MainForm.cs:1967`
 - ─────
 - **Сохранить (&S) / Save (&S)** — событие `SaveDocument` — `DocEnergySpectrum.cs:517`
-- **Закрыть (&C) / Close (&C)** — событие `CloseDocument` — `DocEnergySpectrum.cs:523`
+- **Закрыть(&C) / Close (&C)** (в ресурсе без пробела) — событие `CloseDocument` — `DocEnergySpectrum.cs:523`
 
 ### 3.2 Таблица обнаруженных пиков — DCPeakDetectionView (`contextMenuStrip1`, `DCPeakDetectionView.Designer.cs:167`)
 Оба пункта активны только при выделенных строках (`DCPeakDetectionView.cs:486`).
 - **Добавить в калибровку / Add in calibration** — для каждой выбранной строки берёт канал и энергию (минус ошибка) и зовёт `mainForm.addCalibration()` — `DCPeakDetectionView.cs:447`
 - **Поиск в Базе Изотопов / Search Isotope Base** — `mainForm.CallNucBaseSearch(энергия строки)`: открывает Базу изотопов с поиском по энергии — `DCPeakDetectionView.cs:480`
 
-### 3.3 График калибровки энергии — CalibrationGraph (внутри DCEnergyCalibrationView; `Utils\CalibrationGraph.Designer.cs:43`)
+### 3.3 График калибровки энергии — CalibrationGraph (отдельное модальное окно, открывается кнопкой из DCEnergyCalibrationView — `DCEnergyCalibrationView.cs:694-699`, ShowDialog; `Utils\CalibrationGraph.Designer.cs:43`)
 - **Сохранить новые точки калибровки / Save new calibration points** — записывает отредактированные точки в `ActiveResultData.CalibrationPoints` — `Utils\CalibrationGraph.cs:360`
 - **Отменить изменения / Reset modifications** — откат точек и полинома к исходным — `Utils\CalibrationGraph.cs:367`
 
-### 3.4 График FWHM-калибровки — FWHMCalibrationGraph (внутри DCFwhmCalibrationView; `Utils\FWHMCalibrationGraph.Designer.cs`)
-- **Сохранить новые точки калибровки** — пишет пики в `ActiveResultData.FwhmCalibration.CalibrationPeaks` — `Utils\FWHMCalibrationGraph.cs:381`
-- **Отменить изменения** — откат — `Utils\FWHMCalibrationGraph.cs:389`
+### 3.4 График FWHM-калибровки — FWHMCalibrationGraph (отдельное модальное окно, кнопка из DCFwhmCalibrationView — `DCFwhmCalibrationView.cs:906-910`, ShowDialog; `Utils\FWHMCalibrationGraph.Designer.cs`). RU-ключей нет — файла `FWHMCalibrationGraph.ru.resx` не существует, в русской локали пункты по-английски:
+- **Save new calibration points (Сохранить новые точки)** — пишет пики в `ActiveResultData.FwhmCalibration.CalibrationPeaks` — `Utils\FWHMCalibrationGraph.cs:381`
+- **Reset modifications (Отменить изменения)** — откат — `Utils\FWHMCalibrationGraph.cs:389`
 
 ### 3.5 ToolWindow (базовый класс панелей) — мёртвое меню
 `ToolWindow.Designer.cs:30` создаёт `contextMenuStrip1` с пунктами **Option&1 / Option&2 / Option&3**,
@@ -229,6 +239,9 @@
 - **Осиротевшие RU-ключи в `MainForm.ru.resx`**: `toolStripMenuItem1` («&Экспорт спектра в файл»), `toolStripMenuItem2` («Отчёт...»), `toolStripMenuItem3` («Статус измерений»), `toolStripMenuItem4` («&Калибровка энергии»), `toolStripMenuItem5` («Скорость С&чёта») — пунктов с такими именами в `MainForm.Designer.cs` нет (пункты были переименованы или удалены; «Отчёт...» и «Статус измерений» в текущем меню отсутствуют вовсе). Следствие: пункт «Export Spectrum to File» в русской локали отображается по-английски.
 - **Пункты без русских подписей** (fallback на EN в русской локали): LSRM EffCalcMC.txt -> ROI, SpectraLine GBS, (OS Default), English, Russian, Export Spectrum to File.
 - **`jaJPToolStripMenuItem`** — имя от японской локали оригинального BecquerelMonitor; фактический текст «Russian», ставит `ru-RU`.
+- Осиротевший ключ `toolStripSplitButton7.ToolTipText` = «Выбрать отображение фона» (`DocEnergySpectrum.ru.resx:294`) — кнопка переименована в `toolStripSplitButtonBgMode`.
+- Мёртвый обработчик `ToolStripStatusLabel2_Click` (`MainForm.cs:2213-2222`, опрос температуры AtomSpectra кликом по метке статус-строки) — нигде не подписан, недостижим.
+- Оба режима раскладки делят один файл: `LayoutConfigFile()` всегда возвращает `ExpertMode.xml` (`MainForm.cs:3229-3232`).
 - **Файл → Экспорт → для FWHM** — числа 530/627/780 кэВ и кодировка вывода 932 (Shift-JIS) зашиты в код (`MainForm.cs:3056-3085`); назначение — экспорт окрестности пика 662 кэВ для внешней оценки FWHM, но в меню это никак не пояснено.
 - **ToolWindow.contextMenuStrip1 (Option1/2/3)** — заготовка без обработчиков, нигде не привязана.
 - Вкладка мастера в этой ветке называется «2 · Линии» (`RoiWizard\RoiWizardStrings.ru.resx`); переименование «2 · Цепочки» существует только в веб-версии конструктора, в WinForms-порт не переносилось.
