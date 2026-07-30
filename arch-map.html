@@ -345,7 +345,7 @@ img { max-width: 100%; }
 <td>EasyControlConfig → Device/ROI-конфиги</td>
 <td><strong>Guid-строки</strong> (<code>EasyControlConfig.cs:27, 58</code>)</td>
 <td><code>GlobalConfigForm.cs:234, 239</code></td>
-<td><code>MainForm.cs:2670, 2680</code> — <strong>индексатор словаря БЕЗ ContainsKey</strong> (проверка только на null): удаление конфига, на который смотрит EasyControl, даёт <code>KeyNotFoundException</code> по событию DeviceConfigChanged/ROIConfigListChanged. Единственный путь резолва Guid, который не молчит, а падает; асимметрия — в том же методе :2689 ContainsKey есть</td>
+<td><code>MainForm.cs:2670, 2680</code> — <strong>индексатор словаря БЕЗ ContainsKey</strong> (проверка только на null): удаление конфига, на который смотрит EasyControl, даёт <code>KeyNotFoundException</code> по событию DeviceConfigChanged/ROIConfigListChanged. Единственный путь резолва Guid, который не молчит, а падает; асимметрия внутри <code>manager_ROIConfigListChanged</code> (:2675): :2680 без ContainsKey, :2689 с ним; в <code>manager_DeviceConfigChanged</code> (:2665, содержит :2670) проверки нет вовсе</td>
 </tr>
 </tbody>
 </table>
